@@ -1,22 +1,13 @@
--- ============================================
--- QUERIES DE PRUEBA
--- ============================================
-
 USE mydb;
 
--- Ver todos los usuarios
+-- Ver lo que sea, depende dle nombvre de la variable
 SELECT * FROM Users;
 
--- Ver todas las salas
 SELECT * FROM GameRooms;
 
--- Ver todos los replays
 SELECT * FROM GameReplays;
 
--- Probar login correcto
 CALL LoginUser('Player1', 'pass123');
-
--- Probar login incorrecto
 CALL LoginUser('Player1', 'wrong_pass');
 
 -- Ver salas con información completa
