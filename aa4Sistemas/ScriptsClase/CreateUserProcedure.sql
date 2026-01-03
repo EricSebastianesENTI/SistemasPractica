@@ -5,7 +5,7 @@ drop procedure if exists CreateUser;
 delimiter //
 
 create procedure Createuser
-	(newUsername varchar(45), newPassword varchar(45))
+	(newusername varchar(45), newPassword varchar(45))
 mainFunc:begin
 
 	declare existingusers int default 0;
