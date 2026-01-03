@@ -1,143 +1,143 @@
 <!DOCTYPE html>
-    <html class="FullScreenObject">
-    <head>
-        <title> Chat En Clase</title>
-        <link rel="stylesheet" href="/styles.css">
-    </head>
+<html class="FullScreenObject">
+<head>
+    <title>Chat En Clase</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
 
-    <header>
+<header>
+</header>
 
-    </header>
+<body class="FullScreenObject">
+    <div id="LoginContainer">
+        <div>Username:</div>
+        <input type="text" id="UsernameInput"/>
+        <div>Password:</div>
+        <input type="password" id="PasswordInput"/>
+        <div id="LoginErrorMessage" class="errorMessage"></div>
+        <button onclick="TryLogin()">Try Login</button>
+    </div>
 
-        <body class="FullScreenObject">
-            <div id="LoginContainer">
-                <div>Username:</div>
-                <input type="text" id="UsernameInput"/>
-                <div>Password:</div>
-                <input type="text" id="PasswordInput"/>
-                <div id="LoginErrorMessage", class="errorMessage"></div>
-                <button onclick="TryLogin()">Try Login</button>
-            </div>
-
-            <div class="ChatContainer" id="ChatContainer">
-            <div id="MessagesContainer" class="MessagesContainer">
-            </div>
-            <div class="InputContainer">
-            
+    <div class="ChatContainer" id="ChatContainer">
+        <div id="MessagesContainer" class="MessagesContainer">
+        </div>
+        <div class="InputContainer">
             <div>Message Box:</div>
             <input type="text" id="MessageInput"/>
             <button onclick="SendMessage()" class="MessageButton">Send</button>
-            </div>
         </div>
-    </body>
+    </div>
+</body>
 
-    <footer>
-    </footer>
+<footer>
+</footer>
 
-    <script src = "/socket.io/socket.io.js"></script>
-    <script>
-        var socket = io();
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
 
-        var loginContainer = document.getElementById("LoginContainer");
-        var usernameField = document.getElementById("UsernameInput");
-        var passwordField = document.getElementById("PasswordInput");
-        var loginErrorMessage = document.getElementById("LoginErrorMessage");
-        var ChatContainer = document.getElementById("ChatContainer");
-        ChatContainer.hidden = true;
-        var messageContainer = document.getElementById("MessagesContainer");
-        var inputField = document.getElementById("MessageInput");
+    var loginContainer = document.getElementById("LoginContainer");
+    var usernameField = document.getElementById("UsernameInput");
+    var passwordField = document.getElementById("PasswordInput");
+    var loginErrorMessage = document.getElementById("LoginErrorMessage");
+    var ChatContainer = document.getElementById("ChatContainer");
+    ChatContainer.hidden = true;
+    var messageContainer = document.getElementById("MessagesContainer");
+    var inputField = document.getElementById("MessageInput");
 
-        function CreateMessageWithData(messageData)
-        {
+    function CreateMessageWithData(messageData) {
         var msgParagraph = document.createElement("p");
-        msgParagraph.textContent = messageData.text;
-        if(messageData.username == usernameField.value)
-        {
-        msgParagraph.classList.add("MyMessage");
+        msgParagraph.textContent = messageData.username + ": " + messageData.text;
+        
+        if(messageData.username == usernameField.value) {
+            msgParagraph.classList.add("MyMessage");
+        } else {
+            msgParagraph.classList.add("OtherMyMessage");
         }
-        else
-        {
-        msgParagraph.classList.add("OtherMyMessage");
-        }
+        
         messageContainer.appendChild(msgParagraph);
+        
+        // Auto-scroll al último mensaje
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
 
-        }
-        socket.on("ServerMessageToClient", (messageData) => {
+    socket.on("ServerMessageToClient", (messageData) => {
         CreateMessageWithData(messageData);
-        })
+    });
 
-        socket.on("ServerResponseRequestMessageListToServer", (msgDataList) => {
-        messageContainer.value = "";
+    socket.on("ServerResponseRequestMessageListToServer", (msgDataList) => {
+        messageContainer.innerHTML = "";
 
-        for(messageData of msgDataList)
-        {
-        CreateMessageWithData(messageData);
+        for(messageData of msgDataList) {
+            CreateMessageWithData(messageData);
         }
-        })
+    });
 
+    function SendMessage() {
+        if(inputField.value) {
+            var username = usernameField.value;
+            var text = inputField.value;
 
-        function SendMessage()
-        {
-        if(inputField.value)
-        {
-        var username = usernameField.value;
-        var text = inputField.value;
-
-        var messageData = {
-        username: username,
-        text: text
-        }
-        socket.emit("ClientMessageToServer", messageData);
-        inputField.value = "";
-
-        }
-        }
-        socket.emit("ClientRequestMessageListToServer")
-
-
-        function TryLogin() {
-            loginErrorMessage = "";
-
-            if(usernameField.value == "" | passwordField.value == "")
-            {
-                loginErrorMessage.textContent = "User or password is blank";
-                return;
-            }
-
-            var loginData = {
-                username: usernameField.value,
-                password: passwordField.value
+            var messageData = {
+                username: username,
+                text: text
             };
+            
+            socket.emit("ClientMessageToServer", messageData);
+            inputField.value = "";
+        }
+    }
 
-            socket.emit("LoginRequest", loginData);
+    // Permitir enviar con Enter
+    inputField.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            SendMessage();
+        }
+    });
+
+    // Solicitar lista de mensajes al cargar
+    socket.emit("ClientRequestMessageListToServer");
+
+    function TryLogin() {
+        loginErrorMessage.textContent = "";
+
+        if(usernameField.value == "" || passwordField.value == "") {
+            loginErrorMessage.textContent = "User or password is blank";
+            return;
         }
 
+        var loginData = {
+            username: usernameField.value,
+            password: passwordField.value
+        };
 
-        socket.on("LoginResponse", (loginResponseData) => {
+        socket.emit("LoginRequest", loginData);
+    }
 
-            if(loginResponseData.status == "error")
-            {
-                var errorMessage = loginResponseData.message;
-                if(errorMessage == "")
-                {
-                    errorMessage = "Unknown";
-                }
-
-                loginErrorMEssage.textContent = "errorMessage";
-                return;
+    socket.on("LoginResponse", (loginResponseData) => {
+        if(loginResponseData.status == "error") {
+            var errorMessage = loginResponseData.message;
+            if(errorMessage == "" || errorMessage == undefined) {
+                errorMessage = "Unknown error";
             }
 
-            loginContainer.hidden = true;
-            ChatContainer.hidden = false;
+            loginErrorMessage.textContent = errorMessage;
+            return;
+        }
 
-            console.log(loginResponseData);
-        })
-        /*var msgText1 = document.createElement("p");
-        msgText1.classList.add("MyMessage");
-        msgText1.textContent = "Text MSG";
-        messageContainer.appendChild(msgText1);*/
+        loginContainer.hidden = true;
+        ChatContainer.hidden = false;
 
+        console.log("Login exitoso:", loginResponseData);
+        
+        // Solicitar mensajes después del login
+        socket.emit("ClientRequestMessageListToServer");
+    });
 
-
-    </script>
+    // Manejar errores de conexión
+    socket.on("connect_error", (error) => {
+        console.error("Error de conexión:", error);
+        loginErrorMessage.textContent = "Error connecting to server";
+    });
+</script>
 </html>

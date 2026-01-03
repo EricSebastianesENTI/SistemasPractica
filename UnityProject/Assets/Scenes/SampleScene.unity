@@ -285,7 +285,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   input: {fileID: 249420676}
-  serverUrlLink: http://10.40.2.169:3000/
+  username: UnityUser
+  serverUrlLink: http://192.168.1.56:3000/
 --- !u!4 &132415440
 Transform:
   m_ObjectHideFlags: 0
@@ -1070,7 +1071,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1441391681}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 132415439}
+        m_TargetAssemblyTypeName: SocketIOChatTest, Assembly-CSharp
+        m_MethodName: SendMessage
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1441391681
 MonoBehaviour:
   m_ObjectHideFlags: 0
