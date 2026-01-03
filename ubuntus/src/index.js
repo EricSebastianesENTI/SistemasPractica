@@ -39,7 +39,7 @@ require("./bddSetup")(app);
 // Rutas
 app.use(require("./routes/_routes"));
 
-// Configurar Socket.IO
+// Configurar Socket.IO AQUÍ (no en chat.js)
 const messageList = [];
 
 io.on("connection", (socket) => {
