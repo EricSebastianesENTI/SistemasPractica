@@ -33,93 +33,169 @@ const io = new Server(server, {
 
 app.set("io", io);
 
+// Importar RoomManager y helpers
+const RoomManager = require('./roomManager');
+const dbHelpers = require('./dbHelpers');
+
+// Variable global para RoomManager
+let roomManager = null;
+
+// Función para inicializar RoomManager cuando la BD esté lista
+function initializeRoomManager() {
+    const bdd = app.get("bdd");
+    if (bdd && !roomManager) {
+        try {
+            roomManager = new RoomManager(io, bdd);
+            console.log("Room Manager inicializado correctamente");
+            return true;
+        } catch (error) {
+            console.error("Error inicializando RoomManager:", error);
+            return false;
+        }
+    }
+    return false;
+}
+
 // Configurar base de datos
 require("./bddSetup")(app);
+
+// Escuchar cuando la BD esté lista
+app.on('dbReady', () => {
+    console.log("Señal dbReady recibida - Inicializando RoomManager...");
+    initializeRoomManager();
+});
+
+// Backup: Intentar inicializar después de un delay (por si el evento no funciona)
+setTimeout(() => {
+    if (!roomManager) {
+        console.log("Timeout alcanzado - Intentando inicializar RoomManager...");
+        if (!initializeRoomManager()) {
+            console.log(" RoomManager no pudo inicializarse - BD no disponible");
+            console.log(" El servidor seguirá funcionando pero sin funcionalidad de salas");
+        }
+    }
+}, 3000);
 
 // Rutas
 app.use(require("./routes/_routes"));
 
-// Configurar Socket.IO AQUÍ (no en chat.js)
-const messageList = [];
-
+// Configurar Socket.IO
 io.on("connection", (socket) => {
     var address = socket.request.connection;
-    console.log("Socket connected with ip:port --> " + address.remoteAddress + ":" + address.remotePort);
+    console.log("Socket connected --> " + address.remoteAddress + ":" + address.remotePort);
 
-    socket.on("ClientRequestMessageListToServer", () => {
-        console.log("Cliente solicitó lista de mensajes");
-        socket.emit("ServerResponseRequestMessageListToServer", messageList);
-    });
+    // Verificar que RoomManager esté listo
+    if (!roomManager) {
+        console.log("Cliente conectado pero RoomManager no está listo");
+        socket.emit("error", { 
+            message: "Server is initializing, please wait and try again...",
+            code: "SERVER_NOT_READY"
+        });
+    }
 
-    socket.on("ClientMessageToServer", (messageData) => {
-        console.log("Mensaje recibido:", messageData);
+    // AUTENTICACIÓN
+    
+    socket.on("authenticate", async (data) => {
+        console.log("Intento de autenticación:", data);
         
-        if (!messageData.username || !messageData.text) {
-            console.log("Mensaje con formato incorrecto");
+        if (!roomManager) {
+            console.log("Autenticación fallida - RoomManager no disponible");
+            socket.emit("error", { message: "Server not ready" });
             return;
         }
 
-        messageList.push(messageData);
-        io.emit("ServerMessageToClient", messageData);
-    });
-
-    socket.on("UnityMessage", (text) => {
-        console.log("Mensaje de Unity recibido:", text);
+        const { userId, username } = data;
         
-        var messageData = {
-            username: "UnityUser",
-            text: text
-        };
+        roomManager.registerUser(socket.id, userId, username);
         
-        messageList.push(messageData);
-        io.emit("ServerMessageToClient", messageData);
-    });
-
-    socket.on("LoginRequest", (loginData) => {
-        console.log("Login request:", loginData);
+        // Enviar lista de salas actual
+        socket.emit("roomsList", roomManager.getRoomsList());
         
-        var bddConnection = app.get("bdd");
-
-        if (!bddConnection) {
-            console.error("BDD no conectada");
-            socket.emit("LoginResponse", {
-                status: "error",
-                message: "Database connection error"
-            });
-            return;
-        }
-        
-        var query = 'SELECT id FROM User WHERE username = "' + loginData.username + '" AND password = "' + loginData.password + '"';
-        
-        bddConnection.query(query, (err, result, fields) => {
-            var loginResponseData = {};
-            
-            if (err) {
-                console.error("Database error:", err);
-                loginResponseData.status = "error";
-                loginResponseData.message = "Database error";
-                socket.emit("LoginResponse", loginResponseData);
-                return;
-            }
-
-            if (result.length <= 0) {
-                console.log("User or password Incorrect");
-                loginResponseData.status = "error";
-                loginResponseData.message = "User or password Incorrect";
-                socket.emit("LoginResponse", loginResponseData);
-                return;
-            }
-
-            loginResponseData.status = "success";
-            loginResponseData.id = result[0].id;
-
-            socket.emit("LoginResponse", loginResponseData);
-            console.log("Login successful:", loginResponseData);
+        console.log("Usuario autenticado:", username);
+        socket.emit("authenticated", { 
+            status: "success",
+            message: "Authenticated successfully" 
         });
     });
 
+    // GESTIÓN DE SALAS
+
+    socket.on("createRoom", async (data) => {
+        if (!roomManager) {
+            socket.emit("error", { message: "Server not ready" });
+            return;
+        }
+
+        const { roomName } = data;
+        console.log("Creando sala:", roomName);
+        const result = await roomManager.createRoom(socket.id, roomName);
+        
+        socket.emit("roomCreated", result);
+    });
+
+    socket.on("joinRoomAsPlayer", async (data) => {
+        if (!roomManager) {
+            socket.emit("error", { message: "Server not ready" });
+            return;
+        }
+
+        const { roomId } = data;
+        console.log("Unirse como jugador a sala:", roomId);
+        const result = await roomManager.joinRoomAsPlayer(socket.id, roomId);
+        
+        socket.emit("roomJoined", result);
+    });
+
+    socket.on("joinRoomAsViewer", (data) => {
+        if (!roomManager) {
+            socket.emit("error", { message: "Server not ready" });
+            return;
+        }
+
+        const { roomId } = data;
+        console.log("Unirse como espectador a sala:", roomId);
+        const result = roomManager.joinRoomAsViewer(socket.id, roomId);
+        
+        socket.emit("roomJoined", result);
+    });
+
+    socket.on("leaveRoom", (data) => {
+        if (!roomManager) return;
+
+        const { roomId } = data;
+        console.log("Salir de sala:", roomId);
+        roomManager.leaveRoom(socket.id, roomId);
+        
+        socket.emit("roomLeft", { status: "success" });
+    });
+
+    socket.on("getRooms", () => {
+        if (!roomManager) {
+            socket.emit("roomsList", []);
+            return;
+        }
+
+        console.log("obteniendo lista de salas");
+        socket.emit("roomsList", roomManager.getRoomsList());
+    });
+
+    socket.on("setReady", (data) => {
+        if (!roomManager) return;
+
+        const { isReady } = data;
+        console.log("Cambio de estado ready:", isReady);
+        const result = roomManager.setPlayerReady(socket.id, isReady);
+        
+        socket.emit("readyStatus", result);
+    });
+
+    // DESCONEXIÓN
     socket.on("disconnect", () => {
         console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
+        
+        if (roomManager) {
+            roomManager.disconnectUser(socket.id);
+        }
     });
 });
 
@@ -127,6 +203,8 @@ server.listen(app.get("port"), () => {
     const ip = ipHelper.address();
     const port = app.get("port");
     const url = "http://" + ip + ":" + port + "/";
-    console.log("Servidor arrancado en la url: " + url);
+    console.log("\n" + "=".repeat(50));
+    console.log("Servidor arrancado en: " + url);
     console.log("Socket.IO configurado y listo");
+    console.log("=".repeat(50) + "\n");
 });
