@@ -90,7 +90,7 @@ class RoomManager {
                 }
                 user.currentRoom = result.roomId;
 
-                console.log(`🏠 Sala creada: ${roomName} (ID: ${result.roomId})`);
+                console.log(`Sala creada: ${roomName} (ID: ${result.roomId})`);
 
                 // Notificar a todos que hay una nueva sala
                 this.broadcastRoomsList();
