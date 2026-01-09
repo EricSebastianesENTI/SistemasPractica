@@ -70,8 +70,8 @@ setTimeout(() => {
     if (!roomManager) {
         console.log("Timeout alcanzado - Intentando inicializar RoomManager...");
         if (!initializeRoomManager()) {
-            console.log(" RoomManager no pudo inicializarse - BD no disponible");
-            console.log(" El servidor seguirá funcionando pero sin funcionalidad de salas");
+            console.log("RoomManager no pudo inicializarse - BD no disponible");
+            console.log("El servidor seguirá funcionando pero sin funcionalidad de salas");
         }
     }
 }, 3000);
@@ -163,7 +163,7 @@ io.on("connection", (socket) => {
         if (!roomManager) return;
 
         const { roomId } = data;
-        console.log("Salir de sala:", roomId);
+        console.log("🚪 Salir de sala:", roomId);
         roomManager.leaveRoom(socket.id, roomId);
         
         socket.emit("roomLeft", { status: "success" });
@@ -175,7 +175,7 @@ io.on("connection", (socket) => {
             return;
         }
 
-        console.log("obteniendo lista de salas");
+        console.log("Obteniendo lista de salas");
         socket.emit("roomsList", roomManager.getRoomsList());
     });
 
@@ -189,7 +189,23 @@ io.on("connection", (socket) => {
         socket.emit("readyStatus", result);
     });
 
+    // COMANDOS DE JUEGO
+
+    socket.on("gameCommand", (data) => {
+        if (!roomManager) return;
+
+        const { command } = data;
+        // console.log("Comando de juego:", command); // Comentado para no spamear logs
+        
+        const result = roomManager.handleGameCommand(socket.id, command);
+        
+        if (result.status === 'error') {
+            socket.emit("error", result);
+        }
+    });
+
     // DESCONEXIÓN
+    
     socket.on("disconnect", () => {
         console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
         

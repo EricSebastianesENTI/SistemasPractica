@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Columns Online - Game</title>
+    <link rel="stylesheet" href="/styles/game.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Header con info de sala -->
+        <div class="game-header">
+            <div class="room-info">
+                <h2 id="room-name">Sala</h2>
+                <button id="leave-game-btn" class="btn-danger">Salir</button>
+            </div>
+            <div class="game-status">
+                <span id="game-state">Esperando...</span>
+            </div>
+        </div>
+
+        <!-- Área de juego -->
+        <div class="game-area">
+            <!-- Grid Jugador 1 -->
+            <div class="player-section">
+                <div class="player-header">
+                    <h3 id="player1-name">Jugador 1</h3>
+                    <div class="score">
+                        <span>Puntos:</span>
+                        <span id="player1-score">0</span>
+                    </div>
+                </div>
+                <canvas id="grid-player1" width="300" height="650"></canvas>
+            </div>
+
+            <!-- Grid Jugador 2 -->
+            <div class="player-section">
+                <div class="player-header">
+                    <h3 id="player2-name">Jugador 2</h3>
+                    <div class="score">
+                        <span>Puntos:</span>
+                        <span id="player2-score">0</span>
+                    </div>
+                </div>
+                <canvas id="grid-player2" width="300" height="650"></canvas>
+            </div>
+        </div>
+
+        <!-- Controles (solo para jugadores, no para viewers) -->
+        <div id="controls-panel" class="controls-panel" style="display: none;">
+            <h4>Controles:</h4>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <span class="key">←</span>
+                    <span>Mover Izquierda</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">→</span>
+                    <span>Mover Derecha</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">↓</span>
+                    <span>Bajar</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">SPACE</span>
+                    <span>Rotar</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">ENTER</span>
+                    <span>Caída Rápida</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensaje de pausa -->
+        <div id="pause-overlay" class="overlay" style="display: none;">
+            <div class="overlay-content">
+                <h2>Juego Pausado</h2>
+                <p id="pause-message">No hay espectadores conectados</p>
+            </div>
+        </div>
+
+        <!-- Mensaje de Game Over -->
+        <div id="gameover-overlay" class="overlay" style="display: none;">
+            <div class="overlay-content">
+                <h2 id="gameover-title">Fin del Juego</h2>
+                <p id="gameover-message"></p>
+                <button id="back-to-lobby-btn" class="btn-primary">Volver al Lobby</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/game.js"></script>
+</body>
+</html>
