@@ -1,0 +1,333 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body 
+{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+}
+
+.screen 
+{
+    display: none;
+    width: 100%;
+    max-width: 800px;
+    padding: 20px;
+}
+
+.screen.active 
+{
+    display: block;
+}
+
+.container 
+{
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+h1 
+{
+    text-align: center;
+    margin-bottom: 30px;
+    color: #667eea;
+    font-size: 2.5em;
+}
+
+h2 
+{
+    margin-bottom: 20px;
+    color: #667eea;
+}
+
+/* Tabs */
+.tabs 
+{
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn 
+{
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.tab-btn.active 
+{
+    background: #667eea;
+    color: white;
+}
+
+.tab-content 
+{
+    display: none;
+}
+
+.tab-content.active 
+{
+    display: block;
+}
+
+/* Forms */
+form 
+{
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input[type="text"],
+input[type="password"] 
+{
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: border 0.3s;
+}
+
+input:focus 
+{
+    outline: none;
+    border-color: #667eea;
+}
+
+button
+{
+    padding: 15px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+button:hover
+{
+    background: #5568d3;
+    transform: translateY(-2px);
+}
+
+.error
+{
+    color: #e74c3c;
+    text-align: center;
+    min-height: 20px;
+    margin-top: 10px;
+}
+
+/* Header */
+.header
+{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.user-info
+{
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#logout-btn
+{
+    padding: 10px 20px;
+    background: #e74c3c;
+}
+
+#logout-btn:hover
+{
+    background: #c0392b;
+}
+
+/* Create Room */
+.create-room
+{
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.create-room input
+{
+    flex: 1;
+}
+
+/* Rooms List */
+.rooms-list
+{
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#rooms-container
+{
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.room-card
+{
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.room-card:hover
+{
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.room-info h3
+{
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.room-status
+{
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+.room-card button
+{
+    padding: 10px 20px;
+}
+
+.no-rooms
+{
+    text-align: center;
+    color: #999;
+    padding: 40px;
+}
+
+/* Waiting Room */
+.players-container
+{
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 40px 0;
+}
+
+.player-slot
+{
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    min-width: 200px;
+}
+
+.player-slot h3
+{
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.player-slot p
+{
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.status
+{
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    background: #e74c3c;
+    color: white;
+}
+
+.status.ready
+{
+    background: #27ae60;
+}
+
+.vs
+{
+    font-size: 2em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.ready-section
+{
+    text-align: center;
+    margin: 30px 0;
+}
+
+.ready-btn
+{
+    padding: 20px 60px;
+    font-size: 18px;
+    background: #27ae60;
+}
+
+.ready-btn:hover
+{
+    background: #229954;
+}
+
+.ready-btn.not-ready
+{
+    background: #e74c3c;
+}
+
+.waiting-message
+{
+    text-align: center;
+    color: #666;
+    margin-top: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px)
+{
+    .container {
+        padding: 20px;
+    }
+
+    .players-container {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .vs {
+        transform: rotate(90deg);
+    }
+}

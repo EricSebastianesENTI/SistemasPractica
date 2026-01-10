@@ -70,8 +70,8 @@ setTimeout(() => {
     if (!roomManager) {
         console.log("Timeout alcanzado - Intentando inicializar RoomManager...");
         if (!initializeRoomManager()) {
-            console.log(" RoomManager no pudo inicializarse - BD no disponible");
-            console.log(" El servidor seguirá funcionando pero sin funcionalidad de salas");
+            console.log("RoomManager no pudo inicializarse - BD no disponible");
+            console.log("El servidor seguirá funcionando pero sin funcionalidad de salas");
         }
     }
 }, 3000);
@@ -93,7 +93,7 @@ io.on("connection", (socket) => {
         });
     }
 
-    // AUTENTICACIÓN
+    // ==================== AUTENTICACIÓN ====================
     
     socket.on("authenticate", async (data) => {
         console.log("Intento de autenticación:", data);
@@ -175,7 +175,7 @@ io.on("connection", (socket) => {
             return;
         }
 
-        console.log("obteniendo lista de salas");
+        console.log("Obteniendo lista de salas");
         socket.emit("roomsList", roomManager.getRoomsList());
     });
 
@@ -189,7 +189,42 @@ io.on("connection", (socket) => {
         socket.emit("readyStatus", result);
     });
 
+    // COMANDOS DE JUEGO
+
+    socket.on("gameCommand", (data) => {
+        if (!roomManager) return;
+
+        const { command } = data;
+        const result = roomManager.handleGameCommand(socket.id, command);
+        
+        if (result.status === 'error') {
+            socket.emit("error", result);
+        }
+    });
+
+    // CHAT
+
+    socket.on("chatMessage", (data) => {
+        if (!roomManager) return;
+
+        const user = roomManager.getUser(socket.id);
+        if (!user || !user.currentRoom) return;
+
+        const { message } = data;
+        
+        // Broadcast del mensaje a todos en la sala
+        io.to(`room_${user.currentRoom}`).emit("chatMessage", {
+            userId: user.userId,
+            username: user.username,
+            message: message,
+            timestamp: Date.now()
+        });
+        
+        console.log(`[${user.username}]: ${message}`);
+    });
+
     // DESCONEXIÓN
+    
     socket.on("disconnect", () => {
         console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
         
