@@ -1,38 +1,14 @@
-// Estado del cliente
 const gameState = {
     socket: null,
     user: null,
     roomId: null,
-    isPlayer: false,
+    isPlayer: true, // Siempre es jugador en el cliente web
     playerId: null,
-    
-    // Canvas
-    canvasP1: null,
-    ctxP1: null,
-    canvasP2: null,
-    ctxP2: null,
-    
-    // Game state del servidor
+    opponentId: null,
     currentGameState: null
 };
 
-// Constantes del juego (deben coincidir con GameConstants.js del servidor)
-const GRID_CONFIG = {
-    WIDTH: 6,
-    HEIGHT: 13
-};
-
-const JEWEL_COLORS = {
-    0: '#1a1a2e',      // NONE - Fondo oscuro
-    1: '#ff6b6b',      // RED
-    2: '#51cf66',      // GREEN
-    3: '#4dabf7',      // BLUE
-    4: '#ffd43b',      // YELLOW
-    5: '#ff922b',      // ORANGE
-    6: '#da77f2',      // PURPLE
-    7: '#f8f9fa'       // SHINY - Blanco brillante
-};
-
+// Comandos de juego
 const GAME_COMMANDS = {
     MOVE_LEFT: 'moveLeft',
     MOVE_RIGHT: 'moveRight',
@@ -44,9 +20,9 @@ const GAME_COMMANDS = {
 // INICIALIZACIÓN
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Game client iniciado');
+    console.log('Cliente de control iniciado');
     
-    // Verificar que haya usuario logueado
+    // Verificar usuario logueado
     const savedUser = localStorage.getItem('columnsUser');
     if (!savedUser) {
         alert('Debes iniciar sesión primero');
@@ -55,11 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     gameState.user = JSON.parse(savedUser);
+    document.getElementById('user-name').textContent = gameState.user.username;
     
     // Obtener roomId de la URL
     const urlParams = new URLSearchParams(window.location.search);
     gameState.roomId = urlParams.get('roomId');
-    gameState.isPlayer = urlParams.get('type') === 'player';
     
     if (!gameState.roomId) {
         alert('No se especificó sala');
@@ -67,50 +43,69 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // Inicializar canvas
-    setupCanvas();
+    console.log(`Conectando a sala ${gameState.roomId}...`);
     
     // Conectar Socket.IO
     connectSocket();
     
     // Event listeners
     setupEventListeners();
-    
-    // Capturar teclado si es jugador
-    if (gameState.isPlayer) {
-        setupKeyboardControls();
-        document.getElementById('controls-panel').style.display = 'block';
-    }
+    setupKeyboardControls();
 });
 
 // SETUP
 
-function setupCanvas() {
-    gameState.canvasP1 = document.getElementById('grid-player1');
-    gameState.ctxP1 = gameState.canvasP1.getContext('2d');
-    
-    gameState.canvasP2 = document.getElementById('grid-player2');
-    gameState.ctxP2 = gameState.canvasP2.getContext('2d');
-    
-    console.log('Canvas inicializados');
-}
-
 function setupEventListeners() {
+    // Botón salir
     document.getElementById('leave-game-btn').addEventListener('click', () => {
         if (confirm('¿Seguro que quieres salir?')) {
             leaveGame();
         }
     });
     
+    // Botón volver al lobby
     document.getElementById('back-to-lobby-btn').addEventListener('click', () => {
         window.location.href = '/lobby';
+    });
+    
+    // Botones de control
+    document.getElementById('btn-left').addEventListener('click', () => {
+        sendGameCommand(GAME_COMMANDS.MOVE_LEFT);
+    });
+    
+    document.getElementById('btn-right').addEventListener('click', () => {
+        sendGameCommand(GAME_COMMANDS.MOVE_RIGHT);
+    });
+    
+    document.getElementById('btn-down').addEventListener('click', () => {
+        sendGameCommand(GAME_COMMANDS.MOVE_DOWN);
+    });
+    
+    document.getElementById('btn-rotate').addEventListener('click', () => {
+        sendGameCommand(GAME_COMMANDS.ROTATE);
+    });
+    
+    document.getElementById('btn-fast-drop').addEventListener('click', () => {
+        sendGameCommand(GAME_COMMANDS.FAST_DROP);
+    });
+    
+    // Chat
+    document.getElementById('send-chat-btn').addEventListener('click', sendChatMessage);
+    document.getElementById('chat-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendChatMessage();
+        }
     });
 }
 
 function setupKeyboardControls() {
     document.addEventListener('keydown', (e) => {
-        if (!gameState.isPlayer || !gameState.currentGameState) return;
-        if (gameState.currentGameState.state !== 'playing' || gameState.currentGameState.isPaused) return;
+        if (!gameState.currentGameState) return;
+        if (gameState.currentGameState.state !== 'playing') return;
+        if (gameState.currentGameState.isPaused) return;
+        
+        // Si está escribiendo en el chat, no capturar teclas
+        if (document.activeElement.id === 'chat-input') return;
         
         let command = null;
         
@@ -132,15 +127,39 @@ function setupKeyboardControls() {
                 e.preventDefault();
                 break;
             case 'Enter':
-                command = GAME_COMMANDS.FAST_DROP;
-                e.preventDefault();
+                // Solo si NO está en el input del chat
+                if (document.activeElement.id !== 'chat-input') {
+                    command = GAME_COMMANDS.FAST_DROP;
+                    e.preventDefault();
+                }
                 break;
         }
         
         if (command) {
             sendGameCommand(command);
+            // Feedback visual
+            highlightButton(command);
         }
     });
+}
+
+function highlightButton(command) {
+    let btnId = null;
+    switch(command) {
+        case GAME_COMMANDS.MOVE_LEFT: btnId = 'btn-left'; break;
+        case GAME_COMMANDS.MOVE_RIGHT: btnId = 'btn-right'; break;
+        case GAME_COMMANDS.MOVE_DOWN: btnId = 'btn-down'; break;
+        case GAME_COMMANDS.ROTATE: btnId = 'btn-rotate'; break;
+        case GAME_COMMANDS.FAST_DROP: btnId = 'btn-fast-drop'; break;
+    }
+    
+    if (btnId) {
+        const btn = document.getElementById(btnId);
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            btn.style.transform = '';
+        }, 100);
+    }
 }
 
 // SOCKET.IO
@@ -163,16 +182,10 @@ function connectSocket() {
     gameState.socket.on('authenticated', () => {
         console.log('Autenticado - Uniéndose a sala...');
         
-        // Unirse a la sala
-        if (gameState.isPlayer) {
-            gameState.socket.emit('joinRoomAsPlayer', {
-                roomId: parseInt(gameState.roomId)
-            });
-        } else {
-            gameState.socket.emit('joinRoomAsViewer', {
-                roomId: parseInt(gameState.roomId)
-            });
-        }
+        // Unirse a la sala como jugador
+        gameState.socket.emit('joinRoomAsPlayer', {
+            roomId: parseInt(gameState.roomId)
+        });
     });
     
     gameState.socket.on('roomJoined', (data) => {
@@ -182,38 +195,47 @@ function connectSocket() {
             
             document.getElementById('room-name').textContent = room.name;
             
-            // Establecer playerId si es jugador
-            if (gameState.isPlayer) {
-                const player = room.players.find(p => p.userId === gameState.user.userId);
-                if (player) {
-                    gameState.playerId = player.userId;
-                }
+            // Establecer playerId
+            const player = room.players.find(p => p.userId === gameState.user.userId);
+            if (player) {
+                gameState.playerId = player.userId;
             }
+            
+            // Identificar oponente
+            const opponent = room.players.find(p => p.userId !== gameState.user.userId);
+            if (opponent) {
+                gameState.opponentId = opponent.userId;
+            }
+            
+            addSystemMessage(`Conectado a: ${room.name}`);
         } else {
             alert('Error al unirse: ' + data.message);
             window.location.href = '/lobby';
         }
     });
     
-    // Escuchar actualizaciones del juego
+    // Estado del juego actualizado
     gameState.socket.on('gameState', (data) => {
         gameState.currentGameState = data;
-        updateGameDisplay(data);
+        updateGameInfo(data);
     });
     
     gameState.socket.on('gameStarted', (data) => {
-        console.log('🎮 Juego iniciado!');
-        document.getElementById('game-state').textContent = '🎮 En Juego';
+        console.log('¡Juego iniciado!');
+        document.getElementById('game-state').textContent = 'En Juego';
+        addSystemMessage('¡El juego ha comenzado!');
     });
     
     gameState.socket.on('gamePaused', (data) => {
         console.log('Juego pausado:', data.reason);
         showPauseOverlay(data.reason);
+        addSystemMessage(`Juego pausado: ${data.reason}`);
     });
     
     gameState.socket.on('gameResumed', () => {
-        console.log('Juego reanudado');
+        console.log('▶Juego reanudado');
         hidePauseOverlay();
+        addSystemMessage('Juego reanudado');
     });
     
     gameState.socket.on('gameOver', (data) => {
@@ -221,18 +243,24 @@ function connectSocket() {
         showGameOverOverlay(data);
     });
     
+    // Chat
+    gameState.socket.on('chatMessage', (data) => {
+        addChatMessage(data.username, data.message, data.userId === gameState.user.userId);
+    });
+    
     gameState.socket.on('error', (data) => {
         console.error('Error del servidor:', data);
-        alert(data.message);
+        addSystemMessage(`Error: ${data.message}`);
     });
     
     gameState.socket.on('disconnect', () => {
         console.log('Socket desconectado');
+        addSystemMessage('Desconectado del servidor');
     });
 }
 
 function sendGameCommand(command) {
-    if (!gameState.socket || !gameState.isPlayer) return;
+    if (!gameState.socket) return;
     
     gameState.socket.emit('gameCommand', { command });
 }
@@ -247,111 +275,68 @@ function leaveGame() {
     window.location.href = '/lobby';
 }
 
-// RENDERIZADO
+// ACTUALIZACIÓN DE INTERFAZ
 
-function updateGameDisplay(data) {
-    // Actualizar estado del juego
+function updateGameInfo(data) {
+    // Actualizar estado
     const stateTexts = {
-        'waiting': 'Esperando jugadores...',
+        'waiting': 'Esperando...',
         'starting': 'Iniciando...',
-        'playing': data.isPaused ? 'PAUSADO' : 'En Juego',
+        'playing': data.isPaused ? 'Pausado' : 'En Juego',
         'gameOver': 'Game Over',
         'finished': 'Finalizado'
     };
     
     document.getElementById('game-state').textContent = stateTexts[data.state] || data.state;
     
-    // Obtener IDs de jugadores
-    const playerIds = Object.keys(data.grids);
-    
-    if (playerIds.length >= 2) {
-        // Actualizar nombres y puntos
-        const p1Id = playerIds[0];
-        const p2Id = playerIds[1];
+    // Actualizar puntuaciones
+    if (data.scores && gameState.playerId) {
+        document.getElementById('my-score').textContent = data.scores[gameState.playerId] || 0;
         
-        // Encontrar nombres (desde currentGameState o user data)
-        document.getElementById('player1-name').textContent = `Jugador ${p1Id}`;
-        document.getElementById('player2-name').textContent = `Jugador ${p2Id}`;
-        
-        document.getElementById('player1-score').textContent = data.scores[p1Id] || 0;
-        document.getElementById('player2-score').textContent = data.scores[p2Id] || 0;
-        
-        // Renderizar grids
-        renderGrid(gameState.ctxP1, data.grids[p1Id], data.currentPieces[p1Id]);
-        renderGrid(gameState.ctxP2, data.grids[p2Id], data.currentPieces[p2Id]);
-    }
-}
-
-function renderGrid(ctx, gridNodes, piecePositions) {
-    const canvas = ctx.canvas;
-    const cellWidth = canvas.width / GRID_CONFIG.WIDTH;
-    const cellHeight = canvas.height / GRID_CONFIG.HEIGHT;
-    
-    // Limpiar canvas
-    ctx.fillStyle = JEWEL_COLORS[0];
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Crear mapa de celdas ocupadas por la pieza actual
-    const pieceMap = new Map();
-    if (piecePositions) {
-        piecePositions.forEach(pos => {
-            pieceMap.set(`${pos.x},${pos.y}`, pos.type);
-        });
-    }
-    
-    // Dibujar grid de abajo hacia arriba (y=0 es el fondo)
-    for (let y = 0; y < GRID_CONFIG.HEIGHT; y++) {
-        for (let x = 0; x < GRID_CONFIG.WIDTH; x++) {
-            const node = gridNodes.find(n => n.x === x && n.y === y);
-            let jewelType = node ? node.type : 0;
-            
-            // Si esta posición tiene una pieza actual, usar ese tipo
-            const pieceKey = `${x},${y}`;
-            if (pieceMap.has(pieceKey)) {
-                jewelType = pieceMap.get(pieceKey);
-            }
-            
-            // Calcular posición en canvas (invertir Y para que y=0 esté abajo)
-            const canvasX = x * cellWidth;
-            const canvasY = canvas.height - (y + 1) * cellHeight;
-            
-            // Dibujar celda
-            drawJewel(ctx, canvasX, canvasY, cellWidth, cellHeight, jewelType);
+        if (gameState.opponentId) {
+            document.getElementById('opponent-score').textContent = data.scores[gameState.opponentId] || 0;
         }
     }
 }
 
-function drawJewel(ctx, x, y, width, height, type) {
-    const color = JEWEL_COLORS[type] || JEWEL_COLORS[0];
+// CHAT
+
+function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
     
-    // Fondo
-    ctx.fillStyle = color;
-    ctx.fillRect(x + 1, y + 1, width - 2, height - 2);
+    if (!message) return;
     
-    // Si no es vacío, añadir borde para efecto 3D
-    if (type !== 0) {
-        // Borde superior/izquierdo más claro
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x + 2, y + height - 2);
-        ctx.lineTo(x + 2, y + 2);
-        ctx.lineTo(x + width - 2, y + 2);
-        ctx.stroke();
-        
-        // Borde inferior/derecho más oscuro
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.beginPath();
-        ctx.moveTo(x + width - 2, y + 2);
-        ctx.lineTo(x + width - 2, y + height - 2);
-        ctx.lineTo(x + 2, y + height - 2);
-        ctx.stroke();
+    if (gameState.socket) {
+        gameState.socket.emit('chatMessage', {
+            roomId: parseInt(gameState.roomId),
+            message: message
+        });
     }
     
-    // Grid lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, width, height);
+    input.value = '';
+}
+
+function addChatMessage(username, message, isMe) {
+    const container = document.getElementById('chat-messages');
+    const p = document.createElement('p');
+    
+    p.className = isMe ? 'my-message' : 'other-message';
+    p.textContent = `${username}: ${message}`;
+    
+    container.appendChild(p);
+    container.scrollTop = container.scrollHeight;
+}
+
+function addSystemMessage(message) {
+    const container = document.getElementById('chat-messages');
+    const p = document.createElement('p');
+    
+    p.className = 'system-message';
+    p.textContent = message;
+    
+    container.appendChild(p);
+    container.scrollTop = container.scrollHeight;
 }
 
 // OVERLAYS
@@ -366,13 +351,20 @@ function hidePauseOverlay() {
 }
 
 function showGameOverOverlay(data) {
-    const winnerName = data.winnerId === gameState.playerId ? 'TÚ' : `Jugador ${data.winnerId}`;
+    const isWinner = data.winnerId === gameState.playerId;
     
     document.getElementById('gameover-title').textContent = 
-        data.winnerId === gameState.playerId ? '¡VICTORIA!' : 'DERROTA';
+        isWinner ? '¡VICTORIA!' : 'DERROTA';
     
+    const winnerName = isWinner ? 'TÚ' : 'Tu oponente';
     document.getElementById('gameover-message').textContent = 
-        `${winnerName} ganó con ${data.scores[data.winnerId]} puntos`;
+        `${winnerName} ganó la partida`;
+    
+    // Puntuaciones finales
+    document.getElementById('final-my-score').textContent = 
+        data.scores[gameState.playerId] || 0;
+    document.getElementById('final-opponent-score').textContent = 
+        data.scores[gameState.opponentId] || 0;
     
     document.getElementById('gameover-overlay').style.display = 'flex';
 }

@@ -93,7 +93,7 @@ io.on("connection", (socket) => {
         });
     }
 
-    // AUTENTICACIÓN
+    // ==================== AUTENTICACIÓN ====================
     
     socket.on("authenticate", async (data) => {
         console.log("Intento de autenticación:", data);
@@ -163,7 +163,7 @@ io.on("connection", (socket) => {
         if (!roomManager) return;
 
         const { roomId } = data;
-        console.log("🚪 Salir de sala:", roomId);
+        console.log("Salir de sala:", roomId);
         roomManager.leaveRoom(socket.id, roomId);
         
         socket.emit("roomLeft", { status: "success" });
@@ -195,13 +195,32 @@ io.on("connection", (socket) => {
         if (!roomManager) return;
 
         const { command } = data;
-        // console.log("Comando de juego:", command); // Comentado para no spamear logs
-        
         const result = roomManager.handleGameCommand(socket.id, command);
         
         if (result.status === 'error') {
             socket.emit("error", result);
         }
+    });
+
+    // CHAT
+
+    socket.on("chatMessage", (data) => {
+        if (!roomManager) return;
+
+        const user = roomManager.getUser(socket.id);
+        if (!user || !user.currentRoom) return;
+
+        const { message } = data;
+        
+        // Broadcast del mensaje a todos en la sala
+        io.to(`room_${user.currentRoom}`).emit("chatMessage", {
+            userId: user.userId,
+            username: user.username,
+            message: message,
+            timestamp: Date.now()
+        });
+        
+        console.log(`[${user.username}]: ${message}`);
     });
 
     // DESCONEXIÓN

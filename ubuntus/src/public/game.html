@@ -3,89 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Columns Online - Game</title>
+    <title>Columns Online - Control</title>
     <link rel="stylesheet" href="/styles/game.css">
 </head>
 <body>
     <div id="game-container">
-        <!-- Header con info de sala -->
+        <!-- Header -->
         <div class="game-header">
             <div class="room-info">
                 <h2 id="room-name">Sala</h2>
-                <button id="leave-game-btn" class="btn-danger">Salir</button>
+                <span id="user-name" class="username"></span>
             </div>
             <div class="game-status">
                 <span id="game-state">Esperando...</span>
             </div>
+            <button id="leave-game-btn" class="btn-danger">Salir</button>
         </div>
 
-        <!-- Área de juego -->
-        <div class="game-area">
-            <!-- Grid Jugador 1 -->
-            <div class="player-section">
-                <div class="player-header">
-                    <h3 id="player1-name">Jugador 1</h3>
-                    <div class="score">
-                        <span>Puntos:</span>
-                        <span id="player1-score">0</span>
-                    </div>
-                </div>
-                <canvas id="grid-player1" width="300" height="650"></canvas>
+        <!-- Info del juego -->
+        <div class="game-info">
+            <div class="info-card">
+                <h3>Tu Puntuación</h3>
+                <div class="score-display" id="my-score">0</div>
             </div>
-
-            <!-- Grid Jugador 2 -->
-            <div class="player-section">
-                <div class="player-header">
-                    <h3 id="player2-name">Jugador 2</h3>
-                    <div class="score">
-                        <span>Puntos:</span>
-                        <span id="player2-score">0</span>
-                    </div>
-                </div>
-                <canvas id="grid-player2" width="300" height="650"></canvas>
+            <div class="info-card">
+                <h3>Oponente</h3>
+                <div class="score-display" id="opponent-score">0</div>
             </div>
         </div>
 
-        <!-- Controles (solo para jugadores, no para viewers) -->
-        <div id="controls-panel" class="controls-panel" style="display: none;">
-            <h4>Controles:</h4>
+        <!-- Controles del juego -->
+        <div class="controls-section">
+            <h3>Controles</h3>
+            <p class="help-text">Usa los botones o las teclas del teclado</p>
+            
             <div class="controls-grid">
-                <div class="control-item">
-                    <span class="key">←</span>
-                    <span>Mover Izquierda</span>
+                <!-- Fila superior: Rotar -->
+                <div class="control-row">
+                    <button id="btn-rotate" class="control-btn btn-special">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-label">Rotar</span>
+                        <span class="btn-key">SPACE</span>
+                    </button>
                 </div>
-                <div class="control-item">
-                    <span class="key">→</span>
-                    <span>Mover Derecha</span>
+                
+                <!-- Fila media: Izquierda - Abajo - Derecha -->
+                <div class="control-row">
+                    <button id="btn-left" class="control-btn">
+                        <span class="btn-icon">←</span>
+                        <span class="btn-label">Izquierda</span>
+                    </button>
+                    
+                    <button id="btn-down" class="control-btn">
+                        <span class="btn-icon">↓</span>
+                        <span class="btn-label">Bajar</span>
+                    </button>
+                    
+                    <button id="btn-right" class="control-btn">
+                        <span class="btn-icon">→</span>
+                        <span class="btn-label">Derecha</span>
+                    </button>
                 </div>
-                <div class="control-item">
-                    <span class="key">↓</span>
-                    <span>Bajar</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">SPACE</span>
-                    <span>Rotar</span>
-                </div>
-                <div class="control-item">
-                    <span class="key">ENTER</span>
-                    <span>Caída Rápida</span>
+                
+                <!-- Fila inferior: Fast Drop -->
+                <div class="control-row">
+                    <button id="btn-fast-drop" class="control-btn btn-special">
+                        <span class="btn-icon">⚡</span>
+                        <span class="btn-label">Caída Rápida</span>
+                        <span class="btn-key">ENTER</span>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Mensaje de pausa -->
+        <!-- Chat -->
+        <div class="chat-section">
+            <h3>Chat</h3>
+            <div id="chat-messages" class="chat-messages">
+                <p class="system-message">Conectado al chat...</p>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje..." maxlength="200">
+                <button id="send-chat-btn">Enviar</button>
+            </div>
+        </div>
+
+        <!-- Overlays -->
         <div id="pause-overlay" class="overlay" style="display: none;">
             <div class="overlay-content">
                 <h2>Juego Pausado</h2>
-                <p id="pause-message">No hay espectadores conectados</p>
+                <p id="pause-message">Esperando...</p>
             </div>
         </div>
 
-        <!-- Mensaje de Game Over -->
         <div id="gameover-overlay" class="overlay" style="display: none;">
             <div class="overlay-content">
                 <h2 id="gameover-title">Fin del Juego</h2>
                 <p id="gameover-message"></p>
+                <div class="final-scores">
+                    <div>
+                        <span>Tu puntuación:</span>
+                        <strong id="final-my-score">0</strong>
+                    </div>
+                    <div>
+                        <span>Oponente:</span>
+                        <strong id="final-opponent-score">0</strong>
+                    </div>
+                </div>
                 <button id="back-to-lobby-btn" class="btn-primary">Volver al Lobby</button>
             </div>
         </div>
