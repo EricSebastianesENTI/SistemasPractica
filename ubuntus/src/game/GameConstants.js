@@ -1,4 +1,3 @@
-// Tipos de joyas (mismo enum que NodeGrid.cs de Unity)
 const JewelType = {
     NONE: 0,
     RED: 1,

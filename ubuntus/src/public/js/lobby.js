@@ -232,8 +232,10 @@ function connectSocket() {
     
     state.socket.on('gameStarted', (data) => {
         console.log('JUEGO INICIADO!');
-        alert('¡El juego va a comenzar! (Pendiente: implementar pantalla de juego)');
-        // TODO: Redirigir a game.html
+        
+        // Redirigir a la página de juego
+        const roomId = state.currentRoom.id;
+        window.location.href = `/game?roomId=${roomId}&type=player`;
     });
     
     state.socket.on('userLeft', (data) => {
@@ -278,8 +280,8 @@ function updateRoomsList(rooms) {
             <div class="room-info">
                 <h3>${escapeHtml(room.name)}</h3>
                 <div class="room-status">
-                    <span>👥 ${room.playersCount}/2 Players</span>
-                    <span>👁️ ${room.viewersCount} Viewers</span>
+                    <span>${room.playersCount}/2 Players</span>
+                    <span>${room.viewersCount} Viewers</span>
                     <span>Status: ${room.status}</span>
                 </div>
             </div>

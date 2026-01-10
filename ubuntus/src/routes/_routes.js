@@ -11,6 +11,10 @@ router.get("/lobby", (req, res) => {
     res.sendFile(path.join(__dirname, "../public/lobby.html"));
 });
 
+router.get("/game", (req, res) => {
+    res.sendFile(path.join(__dirname, "../public/game.html"));
+});
+
 router.use("/characters", require("./characters"));
 router.use("/weapons", require("./weapons"));
 router.use("/chat", require("./chat"));
