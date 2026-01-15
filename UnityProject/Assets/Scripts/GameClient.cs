@@ -10,8 +10,8 @@ public class GameClient : MonoBehaviour
     [SerializeField] private string serverUrl = "http://10.0.2.15:3000/";
     [SerializeField] private NodeGrid nodeGrid; // Referencia al NodeGrid
 
-    [Header("References")]
-    [SerializeField] private NodeGrid nodeGrid;
+    //[Header("References")]
+    //[SerializeField] private NodeGrid nodeGrid;
 
     private SocketIOUnity socket;
     private int currentRoomId;
@@ -54,7 +54,7 @@ public class GameClient : MonoBehaviour
         socket.Emit("authenticate", new
         {
             userId = UnityEngine.Random.Range(10000, 99999),
-            username = this.username
+           // username = this.username
         });
     }
 
