@@ -74,6 +74,11 @@ app.use(require("./routes/_routes"));
 
 
 game = [];
+
+function hasUnityClients() {
+    return game.length > 0;
+}
+
 io.on("connection", (socket) => {
     var address = socket.request.connection;
     console.log("Socket connected --> " + address.remoteAddress + ":" + address.remotePort);
@@ -115,7 +120,7 @@ io.on("connection", (socket) => {
             socket.emit("error", { message: "Server not ready" });
             return;
         }
-        
+
         const { roomName } = data;
         console.log("Creando sala:", roomName);
         const result = await roomManager.createRoom(socket.id, roomName);
@@ -124,111 +129,130 @@ io.on("connection", (socket) => {
     });
 
     socket.on("joinRoomAsPlayer", async (data) => {
-
         const { roomId } = data;
         console.log("Unirse como jugador a sala:", roomId);
         const result = await roomManager.joinRoomAsPlayer(socket.id, roomId);
 
         socket.emit("roomJoined", result);
-        if (game.length == 0)
-        {
 
+        if (result.status === 'success') {
+            const hasUnityClient = game.length > 0;
+
+            if (!hasUnityClient) {
+                socket.emit("unityClientDisconnected",
+                    {
+                        hasUnityClient: false
+                    });
+            } else {
+                // Hay clientes C# conectados
+                socket.emit("unityClientConnected", {
+                    hasUnityClient: true
+                });
+            }
         }
     });
 
-    socket.on("joinRoomAsViewer", (name) => {
-        socket.join(name);
-        socket.emit("roomJoined", true);
-        game.push(name);
-    });
-    socket.on("leaveRoomAsViewer", (name) => {
-        socket.leave(name);
-        socket.emit("roomLeft", true);
-        let index = game.indexOf(name);
-        console.log("Se ha salido de la sala");
-        if (index !== -1) {
-            game.splice(index, 1);
-        }
-    });
+        socket.on("joinRoomAsViewer", (name) => {
+            socket.join(name);
+            socket.emit("roomJoined", true);
+            game.push(name);
 
-    socket.on("leaveRoom", (data) => {
-        if (!roomManager) return;
+            io.to(name).emit("unityClientConnected", {
+                hasUnityClient: true
+            });
+        });
+        socket.on("leaveRoomAsViewer", (name) => {
+            socket.leave(name);
+            socket.emit("roomLeft", true);
+            let index = game.indexOf(name);
+            console.log("Se ha salido de la sala");
+            if (index !== -1) {
+                game.splice(index, 1);
+            }
 
-        const { roomId } = data;
-        console.log("Salir de sala:", roomId);
-        roomManager.leaveRoom(socket.id, roomId);
-
-        socket.emit("roomLeft", { status: "success" });
-    });
-
-    socket.on("getRooms", () => {
-        if (!roomManager) {
-            socket.emit("roomsList", []);
-            return;
-        }
-
-        const rooms = roomManager.getRoomsList();
-        console.log(`📋 Enviando ${rooms.length} salas`);
-        
-        // Enviar array de nombres para Unity
-        const roomNames = rooms.map(r => r.name);
-        socket.emit("roomsList", roomNames);
-    });
-
-    socket.on("setReady", (data) => {
-        if (!roomManager) return;
-
-        const { isReady } = data;
-        console.log("Cambio de estado ready:", isReady);
-        const result = roomManager.setPlayerReady(socket.id, isReady);
-
-        socket.emit("readyStatus", result);
-    });
-
-    socket.on("gameCommand", (data) => {
-        if (!roomManager) return;
-
-        const { command } = data;
-        const result = roomManager.handleGameCommand(socket.id, command);
-
-        if (result.status === 'error') {
-            socket.emit("error", result);
-        }
-    });
-
-    socket.on("chatMessage", (data) => {
-        if (!roomManager) return;
-
-        const user = roomManager.getUser(socket.id);
-        if (!user || !user.currentRoom) return;
-
-        const { message } = data;
-
-        io.to(`room_${user.currentRoom}`).emit("chatMessage", {
-            userId: user.userId,
-            username: user.username,
-            message: message,
-            timestamp: Date.now()
+            io.to(name).emit("unityClientDisconnected", {
+                hasUnityClient: false
+            });
         });
 
-        console.log(`[${user.username}]: ${message}`);
+        socket.on("leaveRoom", (data) => {
+            if (!roomManager) return;
+
+            const { roomId } = data;
+            console.log("Salir de sala:", roomId);
+            roomManager.leaveRoom(socket.id, roomId);
+
+            socket.emit("roomLeft", { status: "success" });
+        });
+
+        socket.on("getRooms", () => {
+            if (!roomManager) {
+                socket.emit("roomsList", []);
+                return;
+            }
+
+            const rooms = roomManager.getRoomsList();
+            console.log(`📋 Enviando ${rooms.length} salas`);
+
+            // Enviar array de nombres para Unity
+            const roomNames = rooms.map(r => r.name);
+            socket.emit("roomsList", roomNames);
+        });
+
+        socket.on("setReady", (data) => {
+            if (!roomManager) return;
+
+            const { isReady } = data;
+            console.log("Cambio de estado ready:", isReady);
+            const result = roomManager.setPlayerReady(socket.id, isReady);
+
+            socket.emit("readyStatus", result);
+        });
+
+        socket.on("gameCommand", (data) => {
+            if (!roomManager) return;
+
+            const { command } = data;
+            const result = roomManager.handleGameCommand(socket.id, command);
+
+            if (result.status === 'error') {
+                socket.emit("error", result);
+            }
+        });
+
+        socket.on("chatMessage", (data) => {
+            if (!roomManager) return;
+
+            const user = roomManager.getUser(socket.id);
+            if (!user || !user.currentRoom) return;
+
+            const { message } = data;
+
+            io.to(`room_${user.currentRoom}`).emit("chatMessage", {
+                userId: user.userId,
+                username: user.username,
+                message: message,
+                timestamp: Date.now()
+            });
+
+            console.log(`[${user.username}]: ${message}`);
+        });
+
+        socket.on("disconnect", () => {
+            console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
+
+            if (roomManager) {
+                roomManager.disconnectUser(socket.id);
+            }
+        });
     });
 
-    socket.on("disconnect", () => {
-        console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
-
-        if (roomManager) {
-            roomManager.disconnectUser(socket.id);
-        }
+    server.listen(app.get("port"), () => {
+        const ip = ipHelper.address();
+        const port = app.get("port");
+        const url = "http://" + ip + ":" + port + "/";
+        console.log("\n" + "=".repeat(50));
+        console.log("Servidor arrancado en: " + url);
+        console.log("Socket.IO configurado y listo");
+        console.log("=".repeat(50) + "\n");
     });
-});
-
-server.listen(app.get("port"), () => {
-    const ip = ipHelper.address();
-    const port = app.get("port");
-    const url = "http://" + ip + ":" + port + "/";
-    console.log("\n" + "=".repeat(50));
-    console.log("Servidor arrancado en: " + url);
-    console.log("Socket.IO configurado y listo");
-    console.log("=".repeat(50) + "\n");
-});

@@ -231,7 +231,14 @@ function connectSocket() {
         showPauseOverlay(data.reason);
         addSystemMessage(`Juego pausado: ${data.reason}`);
     });
-    
+    gameState.socket.on('unityClientDisconnected', (data) => {
+        console.log(' Cliente C# desconectado');
+        showPauseOverlay('Esperando cliente C#...');
+    });
+    gameState.socket.on('unityClientConnected', (data) => {
+        console.log(' Cliente C# conectado');
+        hidePauseOverlay();
+    });
     gameState.socket.on('gameResumed', () => {
         console.log('▶Juego reanudado');
         hidePauseOverlay();
