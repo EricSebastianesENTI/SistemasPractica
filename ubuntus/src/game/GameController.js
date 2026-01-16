@@ -1,7 +1,7 @@
 const Grid = require('./Grid');
 const Piece = require('./Piece');
 const MatchDetector = require('./MatchDetector');
-const { GAME_CONFIG, GAME_STATE, GAME_COMMANDS } = require('./GameConstants');
+const { GAME_CONFIG, GAME_STATE, GAME_COMMANDS, GRID_CONFIG } = require('./GameConstants');
 
 class GameController {
     constructor(roomId, player1, player2, io) {
@@ -12,6 +12,12 @@ class GameController {
         this.state = GAME_STATE.STARTING;
         this.isPaused = false;
         this.hasViewers = false;
+        
+        // Guardar info de jugadores
+        this.players = {
+            [player1.userId]: { userId: player1.userId, username: player1.username },
+            [player2.userId]: { userId: player2.userId, username: player2.username }
+        };
         
         // Grids de jugadores
         this.grids = {
@@ -41,11 +47,51 @@ class GameController {
         console.log(`GameController creado para sala ${roomId}`);
     }
     
+    // NUEVO: Enviar gameInit a un espectador que acaba de unirse
+    sendGameInitToViewer(socketId) {
+        const playerIds = Object.keys(this.players);
+        
+        const initData = {
+            roomId: this.roomId,
+            gridConfig: {
+                width: GRID_CONFIG.WIDTH,
+                height: GRID_CONFIG.HEIGHT
+            },
+            players: playerIds.map(id => ({
+                userId: parseInt(id),
+                username: this.players[id].username
+            }))
+        };
+        
+        console.log(`Enviando gameInit a espectador ${socketId}:`, initData);
+        this.io.to(socketId).emit('gameInit', initData);
+        
+        // Enviar estado actual inmediatamente después
+        this.broadcastGameState();
+    }
+    
     // Iniciar el juego
     start() {
         this.state = GAME_STATE.PLAYING;
         
-        // Enviar estado inicial a todos
+        // Enviar gameInit a todos primero
+        const playerIds = Object.keys(this.players);
+        const initData = {
+            roomId: this.roomId,
+            gridConfig: {
+                width: GRID_CONFIG.WIDTH,
+                height: GRID_CONFIG.HEIGHT
+            },
+            players: playerIds.map(id => ({
+                userId: parseInt(id),
+                username: this.players[id].username
+            }))
+        };
+        
+        console.log('Enviando gameInit a todos:', initData);
+        this.io.to(`room_${this.roomId}`).emit('gameInit', initData);
+        
+        // Enviar estado inicial
         this.broadcastGameState();
         
         // Iniciar loop del juego
@@ -230,8 +276,8 @@ class GameController {
         
         // Notificar a todos
         this.io.to(`room_${this.roomId}`).emit('gameOver', {
-            winnerId,
-            loserId,
+            winnerId: parseInt(winnerId),
+            loserId: parseInt(loserId),
             scores: this.scores
         });
         
@@ -258,26 +304,30 @@ class GameController {
         }
     }
     
-    // Enviar estado del juego a todos los clientes
+    // CORREGIDO: Enviar estado del juego en formato que Unity espera
     broadcastGameState() {
+        const playerIds = Object.keys(this.players);
+        
+        // Construir array de jugadores con TODA su info
+        const playersData = playerIds.map(playerId => {
+            const id = parseInt(playerId);
+            return {
+                playerId: id,
+                username: this.players[playerId].username,
+                score: this.scores[playerId] || 0,
+                grid: this.grids[playerId].getAllNodes(),
+                currentPiece: this.currentPieces[playerId].getPositions()
+            };
+        });
+        
         const gameState = {
             roomId: this.roomId,
             state: this.state,
             isPaused: this.isPaused,
-            scores: this.scores,
-            grids: {},
-            currentPieces: {}
+            tickRate: this.tickRate,
+            timestamp: Date.now(),
+            players: playersData  // ← ESTO es lo que Unity espera
         };
-        
-        // Serializar grids
-        for (const playerId in this.grids) {
-            gameState.grids[playerId] = this.grids[playerId].getAllNodes();
-        }
-        
-        // Serializar piezas actuales
-        for (const playerId in this.currentPieces) {
-            gameState.currentPieces[playerId] = this.currentPieces[playerId].getPositions();
-        }
         
         this.io.to(`room_${this.roomId}`).emit('gameState', gameState);
     }
@@ -293,7 +343,6 @@ class GameController {
     
     // Guardar replay en base de datos
     async saveReplay(winnerId) {
-        // Implementar con dbHelpers.saveGameReplay
         console.log(`Guardando replay de sala ${this.roomId}...`);
         
         const playerIds = Object.keys(this.grids);

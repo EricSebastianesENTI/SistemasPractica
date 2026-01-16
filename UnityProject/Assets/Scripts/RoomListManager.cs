@@ -8,33 +8,30 @@ public class RoomListManager : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private GameClient gameClient;
-    [SerializeField] private Transform roomListContent; // El Content del Scroll View
+    [SerializeField] private Transform roomListContent;
     [SerializeField] private GameObject roomButtonPrefab;
 
     [Header("Settings")]
-    [SerializeField] private float refreshInterval = 3f; // Actualizar cada 3 segundos
+    [SerializeField] private float refreshInterval = 3f;
 
     private float lastRefreshTime;
     private Dictionary<int, GameObject> roomButtons = new Dictionary<int, GameObject>();
 
     void Start()
     {
-        // Suscribirse al evento de lista de salas del GameClient
         if (gameClient != null)
         {
-            // Solicitar lista inicial
             gameClient.GetRoomsList();
             lastRefreshTime = Time.time;
         }
         else
         {
-            Debug.LogError("GameClient no asignado en RoomListManager");
+            Debug.LogError(" GameClient no asignado en RoomListManager");
         }
     }
 
     void Update()
     {
-        // Auto-refresh de la lista
         if (Time.time - lastRefreshTime >= refreshInterval)
         {
             RefreshRoomsList();
@@ -50,81 +47,103 @@ public class RoomListManager : MonoBehaviour
         }
     }
 
-    // Este método será llamado por GameClient cuando reciba la lista
     public void OnRoomsListReceived(JArray roomsArray)
     {
         try
         {
-            // ============ DEBUG COMPLETO ============
-            Debug.Log("=== DEBUG INICIO ===");
-            Debug.Log($"roomsArray es null? {roomsArray == null}");
+            Debug.Log("===  DEBUG OnRoomsListReceived ===");
 
             if (roomsArray == null)
             {
-                Debug.LogError("roomsArray es NULL!");
+                Debug.LogError(" roomsArray es NULL!");
                 return;
             }
 
-            Debug.Log($"Tipo de roomsArray: {roomsArray.GetType()}");
-            Debug.Log($"Count: {roomsArray.Count}");
-            Debug.Log($"JSON Raw completo:\n{roomsArray.ToString(Newtonsoft.Json.Formatting.Indented)}");
-
-            if (roomsArray.Count > 0)
-            {
-                var firstRoom = roomsArray[0];
-                Debug.Log($"=== PRIMERA SALA ===");
-                Debug.Log($"Primera sala completa: {firstRoom.ToString()}");
-                Debug.Log($"Tipo de firstRoom: {firstRoom.GetType()}");
-
-                // Verificar cada campo individualmente
-                Debug.Log($"ID existe? {firstRoom["id"] != null}");
-                if (firstRoom["id"] != null)
-                {
-                    Debug.Log($"ID tipo: {firstRoom["id"].GetType()}");
-                    Debug.Log($"ID valor: {firstRoom["id"]}");
-                }
-
-                Debug.Log($"name existe? {firstRoom["name"] != null}");
-                if (firstRoom["name"] != null)
-                {
-                    Debug.Log($"name tipo: {firstRoom["name"].GetType()}");
-                    Debug.Log($"name valor: {firstRoom["name"]}");
-                }
-            }
-            Debug.Log("=== DEBUG FIN ===\n");
-            // ============ FIN DEBUG ============
-
             Debug.Log($"Recibidas {roomsArray.Count} salas");
+            Debug.Log($"JSON completo:\n{roomsArray.ToString(Newtonsoft.Json.Formatting.Indented)}");
 
-            // IDs de salas actuales en el servidor
             HashSet<int> currentRoomIds = new HashSet<int>();
 
-            foreach (JObject roomObj in roomsArray)
+            // Iterar sobre el JArray correctamente
+            foreach (JToken roomToken in roomsArray)
             {
-                Debug.Log($"Procesando sala: {roomObj.ToString()}");
-
-                // Parsear campos (el servidor envía id como string)
-                int roomId = int.Parse(roomObj.Value<string>("id"));
-                string roomName = roomObj.Value<string>("name");
-                string status = roomObj.Value<string>("status");
-                int playersCount = roomObj.Value<int>("playersCount");
-                int viewersCount = roomObj.Value<int>("viewersCount");
-
-                Debug.Log($"Sala parseada: ID={roomId}, Name={roomName}, Status={status}");
-
-                currentRoomIds.Add(roomId);
-
-                // Actualizar o crear botón
-                if (roomButtons.ContainsKey(roomId))
+                try
                 {
-                    // Actualizar botón existente
-                    UpdateRoomButton(roomButtons[roomId], roomId, roomName, status, playersCount, viewersCount);
+                    Debug.Log($"--- Procesando sala ---");
+                    Debug.Log($"Token type: {roomToken.Type}");
+                    Debug.Log($"Token content: {roomToken.ToString()}");
+
+                    // Verificar que sea un objeto
+                    if (roomToken.Type != JTokenType.Object)
+                    {
+                        Debug.LogError($" Token no es un objeto, es: {roomToken.Type}");
+                        continue;
+                    }
+
+                    // Parsear con manejo seguro de nulos
+                    JToken idToken = roomToken["id"];
+                    JToken nameToken = roomToken["name"];
+                    JToken statusToken = roomToken["status"];
+                    JToken playersCountToken = roomToken["playersCount"];
+                    JToken viewersCountToken = roomToken["viewersCount"];
+
+                    // Verificar que todos los campos existen
+                    if (idToken == null)
+                    {
+                        Debug.LogError(" Campo 'id' no encontrado");
+                        continue;
+                    }
+
+                    // Convertir con seguridad
+                    int roomId;
+                    if (!int.TryParse(idToken.ToString(), out roomId))
+                    {
+                        Debug.LogError($" No se pudo parsear ID: {idToken}");
+                        continue;
+                    }
+
+                    string roomName = nameToken?.ToString() ?? "Unknown";
+                    string status = statusToken?.ToString() ?? "waiting";
+
+                    int playersCount = 0;
+                    if (playersCountToken != null)
+                    {
+                        int.TryParse(playersCountToken.ToString(), out playersCount);
+                    }
+
+                    int viewersCount = 0;
+                    if (viewersCountToken != null)
+                    {
+                        int.TryParse(viewersCountToken.ToString(), out viewersCount);
+                    }
+
+                    Debug.Log($"   Sala parseada correctamente:");
+                    Debug.Log($"   ID: {roomId}");
+                    Debug.Log($"   Nombre: {roomName}");
+                    Debug.Log($"   Estado: {status}");
+                    Debug.Log($"   Jugadores: {playersCount}");
+                    Debug.Log($"   Espectadores: {viewersCount}");
+
+                    currentRoomIds.Add(roomId);
+
+                    // Actualizar o crear botón
+                    if (roomButtons.ContainsKey(roomId))
+                    {
+                        UpdateRoomButton(roomButtons[roomId], roomId, roomName, status, playersCount, viewersCount);
+                    }
+                    else
+                    {
+                        GameObject newButton = CreateRoomButton(roomId, roomName, status, playersCount, viewersCount);
+                        if (newButton != null)
+                        {
+                            roomButtons[roomId] = newButton;
+                        }
+                    }
                 }
-                else
+                catch (System.Exception ex)
                 {
-                    // Crear nuevo botón
-                    GameObject newButton = CreateRoomButton(roomId, roomName, status, playersCount, viewersCount);
-                    roomButtons[roomId] = newButton;
+                    Debug.LogError($" Error procesando sala individual: {ex.Message}");
+                    Debug.LogError($"Stack trace: {ex.StackTrace}");
                 }
             }
 
@@ -134,6 +153,7 @@ public class RoomListManager : MonoBehaviour
             {
                 if (!currentRoomIds.Contains(kvp.Key))
                 {
+                    Debug.Log($" Eliminando sala {kvp.Key} (ya no existe)");
                     Destroy(kvp.Value);
                     toRemove.Add(kvp.Key);
                 }
@@ -143,41 +163,71 @@ public class RoomListManager : MonoBehaviour
             {
                 roomButtons.Remove(id);
             }
+
+            Debug.Log($" Lista de salas actualizada. Total visible: {roomButtons.Count}");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError("Error procesando lista de salas: " + ex.Message);
-            Debug.LogError("Stack trace: " + ex.StackTrace);
-
-            // Si es InvalidCastException, mostrar más info
-            if (ex is System.InvalidCastException)
-            {
-                Debug.LogError("CAST INVÁLIDO DETECTADO!");
-                Debug.LogError("Probablemente el servidor está enviando datos en formato incorrecto");
-            }
+            Debug.LogError($" Error general en OnRoomsListReceived: {ex.Message}");
+            Debug.LogError($"Stack trace: {ex.StackTrace}");
         }
     }
 
     GameObject CreateRoomButton(int roomId, string roomName, string status, int playersCount, int viewersCount)
     {
-        GameObject buttonObj = Instantiate(roomButtonPrefab, roomListContent);
-
-        // Configurar componente RoomButton
-        RoomButton roomButton = buttonObj.GetComponent<RoomButton>();
-        if (roomButton != null)
+        try
         {
-            roomButton.Setup(roomId, roomName, status, playersCount, viewersCount, gameClient);
-        }
+            if (roomButtonPrefab == null)
+            {
+                Debug.LogError(" roomButtonPrefab no está asignado en el Inspector!");
+                return null;
+            }
 
-        return buttonObj;
+            if (roomListContent == null)
+            {
+                Debug.LogError(" roomListContent no está asignado en el Inspector!");
+                return null;
+            }
+
+            GameObject buttonObj = Instantiate(roomButtonPrefab, roomListContent);
+
+            RoomButton roomButton = buttonObj.GetComponent<RoomButton>();
+            if (roomButton != null)
+            {
+                roomButton.Setup(roomId, roomName, status, playersCount, viewersCount, gameClient);
+                Debug.Log($" Botón creado para sala: {roomName}");
+            }
+            else
+            {
+                Debug.LogError("RoomButton component no encontrado en el prefab!");
+            }
+
+            return buttonObj;
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error creando botón: {ex.Message}");
+            return null;
+        }
     }
 
     void UpdateRoomButton(GameObject buttonObj, int roomId, string roomName, string status, int playersCount, int viewersCount)
     {
-        RoomButton roomButton = buttonObj.GetComponent<RoomButton>();
-        if (roomButton != null)
+        try
         {
-            roomButton.UpdateInfo(roomName, status, playersCount, viewersCount);
+            RoomButton roomButton = buttonObj.GetComponent<RoomButton>();
+            if (roomButton != null)
+            {
+                roomButton.UpdateInfo(roomName, status, playersCount, viewersCount);
+            }
+            else
+            {
+                Debug.LogError("RoomButton component no encontrado al actualizar!");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error actualizando botón: {ex.Message}");
         }
     }
 
@@ -185,8 +235,12 @@ public class RoomListManager : MonoBehaviour
     {
         foreach (var button in roomButtons.Values)
         {
-            Destroy(button);
+            if (button != null)
+            {
+                Destroy(button);
+            }
         }
         roomButtons.Clear();
+        Debug.Log("Lista de salas limpiada");
     }
 }

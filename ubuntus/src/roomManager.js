@@ -223,49 +223,61 @@ class RoomManager {
         }
     }
 
-    joinRoomAsViewer(socketId, roomId) {
-        const user = this.getUser(socketId);
-        
-        if (!user) {
-            return { status: 'error', message: 'User not found' };
-        }
+    // AÑADIR ESTE MÉTODO AL roomManager.js existente
+// (o modificar el método joinRoomAsViewer existente)
 
-        const room = this.activeRooms.get(roomId);
-        
-        if (!room) {
-            return { status: 'error', message: 'Room not found' };
-        }
+joinRoomAsViewer(socketId, roomId) {
+    const user = this.users.get(socketId);
+    if (!user) {
+        return { status: 'error', message: 'User not authenticated' };
+    }
 
-        room.viewers.push({
-            socketId: socketId,
-            userId: user.userId,
-            username: user.username
-        });
+    const room = this.rooms.get(roomId);
+    if (!room) {
+        return { status: 'error', message: 'Room not found' };
+    }
 
+    // Añadir como viewer
+    if (!room.viewers.has(socketId)) {
+        room.viewers.add(socketId);
+        user.currentRoom = roomId;
+        user.isViewer = true;
+
+        // Unir al socket a la room
         const socket = this.io.sockets.sockets.get(socketId);
         if (socket) {
             socket.join(`room_${roomId}`);
         }
-        user.currentRoom = roomId;
-        user.isViewer = true;
 
-        console.log(`${user.username} está viendo la sala ${roomId}`);
+        console.log(`${user.username} se unió como espectador a sala ${roomId}`);
 
+        // IMPORTANTE: Si hay un juego activo, enviar gameInit al espectador
+        if (room.gameController) {
+            console.log(`Enviando gameInit al espectador ${user.username}`);
+            room.gameController.sendGameInitToViewer(socketId);
+            
+            // Actualizar estado de pausa si es necesario
+            const hasViewers = room.viewers.size > 0;
+            room.gameController.togglePause(hasViewers);
+        }
+
+        // Notificar a otros en la sala
         this.io.to(`room_${roomId}`).emit('viewerJoined', {
-            viewer: user.username,
-            viewersCount: room.viewers.length
+            username: user.username,
+            viewersCount: room.viewers.size
         });
 
-        // Si el juego estaba pausado por falta de viewers, reanudarlo
-        if (room.gameController) {
-            room.gameController.togglePause(true);
-        }
+        // Actualizar lista de salas para todos
+        this.broadcastRoomsList();
 
         return {
             status: 'success',
-            roomData: this.serializeRoomData(room)
+            roomData: this.getRoomData(room)
         };
     }
+
+    return { status: 'error', message: 'Already in room' };
+}
 
     leaveRoom(socketId, roomId) {
         const user = this.getUser(socketId);
