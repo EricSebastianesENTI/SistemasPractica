@@ -1,17 +1,17 @@
 const mysql = require("mysql2");
 
-module.exports = function(app) {
-    // Configuración de la conexión
+module.exports = function (app)
+{
     const connection = mysql.createConnection({
         host: "localhost",
-        user: "root",           // Cambia esto si usas otro usuario
-        password: "user",       // Pon tu contraseña de MySQL aquí
+        user: "root",
+        password: "user",
         database: "mydb",
-        port: 3306              // Puerto por defecto de MySQL
+        port: 3306
     });
 
-    // Intentar conectar
-    connection.connect((error) => {
+    connection.connect((error) =>
+    {
         if(error) {
             console.error("Error conectando a la BDD:", error.message);
             console.log("El servidor seguirá funcionando sin base de datos");
@@ -25,21 +25,22 @@ module.exports = function(app) {
         console.log("BDD Connected!");
         app.set("bdd", connection);
         
-        // Probar una consulta simple
-        connection.query("SELECT DATABASE() as db", (err, result) => {
-            if (!err) {
+        connection.query("SELECT DATABASE() as db", (err, result) =>
+        {
+            if (!err)
+            {
                 console.log(`Base de datos activa: ${result[0].db}`);
             }
         });
-        
-        // EMITIR EVENTO para que RoomManager se inicialice
+       
         app.emit('dbReady');
     });
 
-    // Manejar desconexiones
-    connection.on('error', (err) => {
+    connection.on('error', (err) =>
+    {
         console.error('Error de base de datos:', err);
-        if(err.code === 'PROTOCOL_CONNECTION_LOST') {
+        if (err.code === 'PROTOCOL_CONNECTION_LOST')
+        {
             console.log('Conexión a la base de datos perdida');
         }
     });

@@ -1,57 +1,65 @@
-/**
- * Ejecuta un stored procedure de forma segura
- * @param {Object} connection - Conexión MySQL
- * @param {String} procedureName - Nombre del procedure
- * @param {Array} params - Parámetros del procedure
- * @returns {Promise} - Resultado de la query
- */
-function callProcedure(connection, procedureName, params = []) {
-    return new Promise((resolve, reject) => {
+function callProcedure(connection, procedureName, params = [])
+{
+    return new Promise((resolve, reject) =>
+    {
         const placeholders = params.map(() => '?').join(',');
         const query = `CALL ${procedureName}(${placeholders})`;
         
-        connection.query(query, params, (error, results) => {
-            if (error) {
+        connection.query(query, params, (error, results) =>
+        {
+            if (error)
+            {
                 console.error(` Error en ${procedureName}:`, error.message);
                 reject(error);
-            } else {
-                // Los stored procedures devuelven arrays de resultados
-                // El primer elemento [0] contiene los datos
+            }
+            else
+            {
                 resolve(results[0]);
             }
         });
     });
 }
 
-async function createUser(connection, username, password) {
-    try {
+async function createUser(connection, username, password)
+{
+    try
+    {
         const result = await callProcedure(connection, 'CreateUser', [username, password]);
         return result[0]; // { status, message, userId }
-    } catch (error) {
+    } catch (error)
+    {
         return { status: 'error', message: error.message };
     }
 }
 
-async function loginUser(connection, username, password) {
-    try {
+async function loginUser(connection, username, password)
+{
+    try
+    {
         const result = await callProcedure(connection, 'LoginUser', [username, password]);
         return result[0]; // { status, userId, username, created_at } o { status, message }
-    } catch (error) {
+    } catch (error)
+    {
         return { status: 'error', message: error.message };
     }
 }
 
-async function createGameRoom(connection, roomName, player1Id) {
-    try {
+async function createGameRoom(connection, roomName, player1Id)
+{
+    try
+    {
         const result = await callProcedure(connection, 'CreateGameRoom', [roomName, player1Id]);
         return result[0]; // { status, roomId, roomName }
-    } catch (error) {
+    } catch (error)
+    {
         return { status: 'error', message: error.message };
     }
 }
 
-async function joinGameRoom(connection, roomId, player2Id) {
-    try {
+async function joinGameRoom(connection, roomId, player2Id)
+{
+    try
+    {
         const result = await callProcedure(connection, 'JoinGameRoom', [roomId, player2Id]);
         return result[0]; // { status, roomId, message }
     } catch (error) {
@@ -59,19 +67,22 @@ async function joinGameRoom(connection, roomId, player2Id) {
     }
 }
 
-async function getAvailableRooms(connection) {
-    try {
+async function getAvailableRooms(connection)
+{
+    try
+    {
         const result = await callProcedure(connection, 'GetAvailableRooms', []);
-        return result; // Array de salas
+        return result;
     } catch (error) {
         console.error('Error obteniendo salas:', error);
         return [];
     }
 }
 
-async function saveGameReplay(connection, roomId, player1Id, player2Id, winnerId, gameplayData, durationSeconds) {
-    try {
-        // Convertir gameplayData a JSON string si es un objeto
+async function saveGameReplay(connection, roomId, player1Id, player2Id, winnerId, gameplayData, durationSeconds)
+{
+    try
+    {
         const jsonData = typeof gameplayData === 'string' 
             ? gameplayData 
             : JSON.stringify(gameplayData);
@@ -90,46 +101,50 @@ async function saveGameReplay(connection, roomId, player1Id, player2Id, winnerId
     }
 }
 
-async function getReplaysList(connection) {
-    try {
+async function getReplaysList(connection)
+{
+    try
+    {
         const result = await callProcedure(connection, 'GetReplaysList', []);
-        return result; // Array de replays
+        return result;
     } catch (error) {
         console.error('Error obteniendo replays:', error);
         return [];
     }
 }
 
-async function getReplayData(connection, replayId) {
-    try {
+async function getReplayData(connection, replayId)
+{
+    try
+    {
         const result = await callProcedure(connection, 'GetReplayData', [replayId]);
         
-        if (result.length > 0) {
-            // Parsear el JSON de gameplay_data
+        if (result.length > 0)
+        {
             const replay = result[0];
-            if (replay.gameplay_data && typeof replay.gameplay_data === 'string') {
+            if (replay.gameplay_data && typeof replay.gameplay_data === 'string')
+            {
                 replay.gameplay_data = JSON.parse(replay.gameplay_data);
             }
             return replay;
         }
         return null;
-    } catch (error) {
+    } catch (error)
+    {
         console.error('Error obteniendo replay:', error);
         return null;
     }
 }
 
-module.exports = {
-    // Usuarios
+module.exports =
+{
     createUser,
     loginUser,
     
-    // Salas
     createGameRoom,
     joinGameRoom,
     getAvailableRooms,
     
-    // Replays
     saveGameReplay,
     getReplaysList,
     getReplayData

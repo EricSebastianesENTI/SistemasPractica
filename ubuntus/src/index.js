@@ -24,8 +24,10 @@ const http = require("http");
 const server = http.createServer(app);
 
 const { Server } = require("socket.io");
-const io = new Server(server, {
-    cors: {
+const io = new Server(server,
+    {
+        cors:
+        {
         origin: "*",
         methods: ["GET", "POST"]
     }
@@ -38,14 +40,18 @@ const dbHelpers = require('./dbHelpers');
 
 let roomManager = null;
 
-function initializeRoomManager() {
+function initializeRoomManager()
+{
     const bdd = app.get("bdd");
-    if (bdd && !roomManager) {
-        try {
+    if (bdd && !roomManager)
+    {
+        try
+        {
             roomManager = new RoomManager(io, bdd);
             console.log("Room Manager inicializado correctamente");
             return true;
-        } catch (error) {
+        } catch (error)
+        {
             console.error("Error inicializando RoomManager:", error);
             return false;
         }
@@ -55,15 +61,19 @@ function initializeRoomManager() {
 
 require("./bddSetup")(app);
 
-app.on('dbReady', () => {
+app.on('dbReady', () =>
+{
     console.log("Señal dbReady recibida - Inicializando RoomManager...");
     initializeRoomManager();
 });
 
-setTimeout(() => {
-    if (!roomManager) {
+setTimeout(() =>
+{
+    if (!roomManager)
+    {
         console.log("Timeout alcanzado - Intentando inicializar RoomManager...");
-        if (!initializeRoomManager()) {
+        if (!initializeRoomManager())
+        {
             console.log("RoomManager no pudo inicializarse - BD no disponible");
             console.log("El servidor seguirá funcionando pero sin funcionalidad de salas");
         }
@@ -72,22 +82,27 @@ setTimeout(() => {
 
 app.use(require("./routes/_routes"));
 
-io.on("connection", (socket) => {
+io.on("connection", (socket) =>
+{
     var address = socket.request.connection;
     console.log("Socket connected --> " + address.remoteAddress + ":" + address.remotePort);
 
-    if (!roomManager) {
+    if (!roomManager)
+    {
         console.log("Cliente conectado pero RoomManager no está listo");
-        socket.emit("error", { 
+        socket.emit("error",
+            { 
             message: "Server is initializing, please wait and try again...",
             code: "SERVER_NOT_READY"
         });
     }
     
-    socket.on("authenticate", async (data) => {
+    socket.on("authenticate", async (data) =>
+    {
         console.log("Intento de autenticación:", data);
         
-        if (!roomManager) {
+        if (!roomManager)
+        {
             console.log("Autenticación fallida - RoomManager no disponible");
             socket.emit("error", { message: "Server not ready" });
             return;
@@ -97,7 +112,6 @@ io.on("connection", (socket) => {
         
         roomManager.registerUser(socket.id, userId, username);
         
-        // Enviar lista de salas actual
         socket.emit("roomsList", roomManager.getRoomsList());
         
         console.log("Usuario autenticado:", username);
@@ -107,7 +121,7 @@ io.on("connection", (socket) => {
         });
     });
 
-    // GESTIÓN DE SALAS
+    // gestión de salas
 
     socket.on("createRoom", async (data) => {
         if (!roomManager) {
@@ -122,8 +136,10 @@ io.on("connection", (socket) => {
         socket.emit("roomCreated", result);
     });
 
-    socket.on("joinRoomAsPlayer", async (data) => {
-        if (!roomManager) {
+    socket.on("joinRoomAsPlayer", async (data) =>
+    {
+        if (!roomManager)
+        {
             socket.emit("error", { message: "Server not ready" });
             return;
         }
@@ -135,8 +151,10 @@ io.on("connection", (socket) => {
         socket.emit("roomJoined", result);
     });
 
-    socket.on("joinRoomAsViewer", (data) => {
-        if (!roomManager) {
+    socket.on("joinRoomAsViewer", (data) =>
+    {
+        if (!roomManager)
+        {
             socket.emit("error", { message: "Server not ready" });
             return;
         }
@@ -148,7 +166,8 @@ io.on("connection", (socket) => {
         socket.emit("roomJoined", result);
     });
 
-    socket.on("leaveRoom", (data) => {
+    socket.on("leaveRoom", (data) =>
+    {
         if (!roomManager) return;
 
         const { roomId } = data;
@@ -158,27 +177,29 @@ io.on("connection", (socket) => {
         socket.emit("roomLeft", { status: "success" });
     });
 
-    socket.on("getRooms", () => {
-        if (!roomManager) {
+    socket.on("getRooms", () =>
+    {
+        if (!roomManager)
+        {
             socket.emit("roomsList", []);
             return;
         }
 
-        console.log("Obteniendo lista de salas");
         socket.emit("roomsList", roomManager.getRoomsList());
     });
 
-    socket.on("setReady", (data) => {
+    socket.on("setReady", (data) =>
+    {
         if (!roomManager) return;
 
         const { isReady } = data;
-        console.log("Cambio de estado ready:", isReady);
         const result = roomManager.setPlayerReady(socket.id, isReady);
         
         socket.emit("readyStatus", result);
     });
 
-    socket.on("gameCommand", (data) => {
+    socket.on("gameCommand", (data) =>
+    {
         if (!roomManager) return;
 
         const { command } = data;
@@ -189,7 +210,8 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("chatMessage", (data) => {
+    socket.on("chatMessage", (data) =>
+    {
         if (!roomManager) return;
 
         const user = roomManager.getUser(socket.id);
@@ -203,11 +225,10 @@ io.on("connection", (socket) => {
             message: message,
             timestamp: Date.now()
         });
-        
-        console.log(`[${user.username}]: ${message}`);
     });
     
-    socket.on("disconnect", () => {
+    socket.on("disconnect", () =>
+    {
         console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
         
         if (roomManager) {

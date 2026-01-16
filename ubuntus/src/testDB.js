@@ -12,22 +12,27 @@ const connection = mysql.createConnection({
 async function testDatabase() {
     console.log("\n Iniciando pruebas de base de datos...\n");
 
-    try {
-        await new Promise((resolve, reject) => {
+    try
+    {
+        await new Promise((resolve, reject) =>
+        {
             connection.connect((error) => {
                 if (error) reject(error);
                 else resolve();
             });
         });
-        console.log(" Conectado a la base de datos");
+        console.log("Conectado a la base de datos");
 
         console.log("\n PRUEBA 1: Crear Usuario");
         const newUser = await dbHelpers.createUser(connection, "TestUser_" + Date.now(), "testpass123");
         console.log("Resultado:", newUser);
 
-        if (newUser.status === 'success') {
+        if (newUser.status === 'success')
+        {
             console.log(" Usuario creado con ID:", newUser.userId);
-        } else {
+        }
+        else
+        {
             console.log(" Error:", newUser.message);
         }
 
@@ -35,7 +40,8 @@ async function testDatabase() {
         const login1 = await dbHelpers.loginUser(connection, "Player1", "pass123");
         console.log("Resultado:", login1);
 
-        if (login1.status === 'success') {
+        if (login1.status === 'success')
+        {
             console.log(" Login exitoso. UserId:", login1.userId);
         }
 
@@ -47,7 +53,8 @@ async function testDatabase() {
         const newRoom = await dbHelpers.createGameRoom(connection, "Sala de Prueba", 1);
         console.log("Resultado:", newRoom);
 
-        if (newRoom.status === 'success') {
+        if (newRoom.status === 'success')
+        {
             console.log(" Sala creada con ID:", newRoom.roomId);
         }
 
@@ -58,14 +65,16 @@ async function testDatabase() {
             console.log(`  - ${room.roomName} (${room.status}) - P1: ${room.player1Name}, P2: ${room.player2Name || 'Esperando...'}`);
         });
 
-        if (newRoom.status === 'success') {
+        if (newRoom.status === 'success')
+        {
             console.log("\n PRUEBA 6: Unirse a Sala");
             const joinResult = await dbHelpers.joinGameRoom(connection, newRoom.roomId, 2);
             console.log("Resultado:", joinResult);
         }
 
         console.log("\nPRUEBA 7: Guardar Replay");
-        const gameplayData = {
+        const gameplayData =
+        {
             moves: [
                 { time: 0, player: 1, action: "move_left" },
                 { time: 1, player: 2, action: "rotate" },
@@ -91,7 +100,8 @@ async function testDatabase() {
             console.log(`  - ID ${replay.replayId}: ${replay.player1Name} vs ${replay.player2Name} (Winner: ${replay.winnerName || 'N/A'})`);
         });
 
-        if (replays.length > 0) {
+        if (replays.length > 0)
+        {
             console.log("\n PRUEBA 9: Obtener Replay Específico");
             const replayData = await dbHelpers.getReplayData(connection, replays[0].replayId);
             console.log("Replay:", {
@@ -104,13 +114,14 @@ async function testDatabase() {
 
         console.log("\n Todas las pruebas completadas!\n");
 
-    } catch (error) {
+    } catch (error)
+    {
         console.error("\n Error durante las pruebas:", error);
-    } finally {
+    }
+    finally
+    {
         connection.end();
         console.log(" Conexión cerrada");
     }
 }
-
-// Ejecutar pruebas
 testDatabase();
