@@ -8,21 +8,19 @@ public class RoomListManager : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private GameClient gameClient;
-    [SerializeField] private Transform roomListContent; // El Content del Scroll View
+    [SerializeField] private Transform roomListContent; 
     [SerializeField] private GameObject roomButtonPrefab;
 
     [Header("Settings")]
-    [SerializeField] private float refreshInterval = 3f; // Actualizar cada 3 segundos
+    [SerializeField] private float refreshInterval = 3f; 
 
     private float lastRefreshTime;
     private Dictionary<int, GameObject> roomButtons = new Dictionary<int, GameObject>();
 
     void Start()
     {
-        // Suscribirse al evento de lista de salas del GameClient
         if (gameClient != null)
         {
-            // Solicitar lista inicial
             gameClient.GetRoomsList();
             lastRefreshTime = Time.time;
         }
@@ -34,7 +32,6 @@ public class RoomListManager : MonoBehaviour
 
     void Update()
     {
-        // Auto-refresh de la lista
         if (Time.time - lastRefreshTime >= refreshInterval)
         {
             RefreshRoomsList();
@@ -50,41 +47,35 @@ public class RoomListManager : MonoBehaviour
         }
     }
 
-    // Este método será llamado por GameClient cuando reciba la lista
     public void OnRoomsListReceived(JArray roomsArray)
     {
         try
         {
             Debug.Log($"Recibidas {roomsArray.Count} salas");
 
-            // IDs de salas actuales en el servidor
             HashSet<int> currentRoomIds = new HashSet<int>();
 
             foreach (JObject roomObj in roomsArray)
             {
-                int roomId = (int)roomObj["id"];
-                string roomName = (string)roomObj["name"];
-                string status = (string)roomObj["status"];
-                int playersCount = (int)roomObj["playersCount"];
-                int viewersCount = (int)roomObj["viewersCount"];
+                int roomId = roomObj["id"].Value<int>();
+                string roomName = roomObj["name"].Value<string>();
+                string status = roomObj["status"].Value<string>();
+                int playersCount = roomObj["playersCount"].Value<int>();
+                int viewersCount = roomObj["viewersCount"].Value<int>();
 
                 currentRoomIds.Add(roomId);
 
-                // Actualizar o crear botón
                 if (roomButtons.ContainsKey(roomId))
                 {
-                    // Actualizar botón existente
                     UpdateRoomButton(roomButtons[roomId], roomId, roomName, status, playersCount, viewersCount);
                 }
                 else
                 {
-                    // Crear nuevo botón
                     GameObject newButton = CreateRoomButton(roomId, roomName, status, playersCount, viewersCount);
                     roomButtons[roomId] = newButton;
                 }
             }
 
-            // Eliminar salas que ya no existen
             List<int> toRemove = new List<int>();
             foreach (var kvp in roomButtons)
             {
@@ -110,7 +101,6 @@ public class RoomListManager : MonoBehaviour
     {
         GameObject buttonObj = Instantiate(roomButtonPrefab, roomListContent);
 
-        // Configurar componente RoomButton
         RoomButton roomButton = buttonObj.GetComponent<RoomButton>();
         if (roomButton != null)
         {
