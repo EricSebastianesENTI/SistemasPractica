@@ -36,7 +36,17 @@ public class RoomListManager : MonoBehaviour
         {
             RefreshRoomsList();
             lastRefreshTime = Time.time;
+
         }
+        if(createButton)
+        {
+            foreach (string i in array)
+            {
+                Instantiate(roomButtonPrefab, roomListContent);
+            }
+            createButton = false;
+        }
+
     }
 
     public void RefreshRoomsList()
@@ -46,13 +56,13 @@ public class RoomListManager : MonoBehaviour
             gameClient.GetRoomsList();
         }
     }
+    string[] array;
+    bool createButton = false;
 
     public void OnRoomsListReceived(string[] roomsArray)
     {
-        foreach (string i in roomsArray)
-        {
-            Instantiate(roomButtonPrefab, roomListContent);
-        }
+        array = (string[])roomsArray.Clone();
+        createButton = true;
     }
 
     GameObject CreateRoomButton(int roomId, string roomName, string status, int playersCount, int viewersCount)

@@ -162,7 +162,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("getRooms", () => {
-        console.log("📤 Enviando", Array.from(io.of("/").adapter.rooms.keys(), "salas");
+        console.log("📤 Enviando", Array.from(io.of("/").adapter.rooms.keys(), "salas"));
         socket.emit("roomsList", Array.from(io.of("/").adapter.rooms.keys());
     });
 
