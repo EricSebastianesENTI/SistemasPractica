@@ -8,6 +8,10 @@ using UnityEngine;
 
 public class GameClient : MonoBehaviour
 {
+    public static GameClient Instance=>instance;
+    private static GameClient instance;
+    public string currentRoomName = "";
+
     [Header("Connection Settings")]
     [SerializeField] private string serverUrl = "http://192.168.1.56:3000/";
 
@@ -33,7 +37,10 @@ public class GameClient : MonoBehaviour
     {
         ConnectToServer();
     }
-
+    public void JoinRoom(string name)
+    {
+        socket.Emit("joinRoomAsViewer", name);
+    }
     void ConnectToServer()
     {
         try

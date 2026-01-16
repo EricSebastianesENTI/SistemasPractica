@@ -46,7 +46,9 @@ public class RoomListManager : MonoBehaviour
             }
             foreach (string i in array)
             {
-                Instantiate(roomButtonPrefab, roomListContent);
+                GameObject temp = Instantiate(roomButtonPrefab, roomListContent);
+                temp.GetComponent<RoomButton>().roomName = i;
+                temp.GetComponentInChildren<TextMeshProUGUI>().text = i;
             }
             createButton = false;
         }
@@ -69,74 +71,4 @@ public class RoomListManager : MonoBehaviour
         createButton = true;
     }
 
-    GameObject CreateRoomButton(int roomId, string roomName, string status, int playersCount, int viewersCount)
-    {
-        try
-        {
-            if (roomButtonPrefab == null)
-            {
-                Debug.LogError(" roomButtonPrefab no está asignado en el Inspector!");
-                return null;
-            }
-
-            if (roomListContent == null)
-            {
-                Debug.LogError(" roomListContent no está asignado en el Inspector!");
-                return null;
-            }
-
-            GameObject buttonObj = Instantiate(roomButtonPrefab, roomListContent);
-
-            RoomButton roomButton = buttonObj.GetComponent<RoomButton>();
-            if (roomButton != null)
-            {
-                roomButton.Setup(roomId, roomName, status, playersCount, viewersCount, gameClient);
-                Debug.Log($" Botón creado para sala: {roomName}");
-            }
-            else
-            {
-                Debug.LogError("RoomButton component no encontrado en el prefab!");
-            }
-
-            return buttonObj;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"Error creando botón: {ex.Message}");
-            return null;
-        }
-    }
-
-    void UpdateRoomButton(GameObject buttonObj, int roomId, string roomName, string status, int playersCount, int viewersCount)
-    {
-        try
-        {
-            RoomButton roomButton = buttonObj.GetComponent<RoomButton>();
-            if (roomButton != null)
-            {
-                roomButton.UpdateInfo(roomName, status, playersCount, viewersCount);
-            }
-            else
-            {
-                Debug.LogError("RoomButton component no encontrado al actualizar!");
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"Error actualizando botón: {ex.Message}");
-        }
-    }
-
-    public void ClearRoomsList()
-    {
-        foreach (var button in roomButtons.Values)
-        {
-            if (button != null)
-            {
-                Destroy(button);
-            }
-        }
-        roomButtons.Clear();
-        Debug.Log("Lista de salas limpiada");
-    }
 }
