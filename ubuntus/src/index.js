@@ -33,14 +33,11 @@ const io = new Server(server, {
 
 app.set("io", io);
 
-// Importar RoomManager y helpers
 const RoomManager = require('./roomManager');
 const dbHelpers = require('./dbHelpers');
 
-// Variable global para RoomManager
 let roomManager = null;
 
-// Función para inicializar RoomManager cuando la BD esté lista
 function initializeRoomManager() {
     const bdd = app.get("bdd");
     if (bdd && !roomManager) {
@@ -56,16 +53,13 @@ function initializeRoomManager() {
     return false;
 }
 
-// Configurar base de datos
 require("./bddSetup")(app);
 
-// Escuchar cuando la BD esté lista
 app.on('dbReady', () => {
     console.log("Señal dbReady recibida - Inicializando RoomManager...");
     initializeRoomManager();
 });
 
-// Backup: Intentar inicializar después de un delay (por si el evento no funciona)
 setTimeout(() => {
     if (!roomManager) {
         console.log("Timeout alcanzado - Intentando inicializar RoomManager...");
@@ -76,15 +70,12 @@ setTimeout(() => {
     }
 }, 3000);
 
-// Rutas
 app.use(require("./routes/_routes"));
 
-// Configurar Socket.IO
 io.on("connection", (socket) => {
     var address = socket.request.connection;
     console.log("Socket connected --> " + address.remoteAddress + ":" + address.remotePort);
 
-    // Verificar que RoomManager esté listo
     if (!roomManager) {
         console.log("Cliente conectado pero RoomManager no está listo");
         socket.emit("error", { 
@@ -92,8 +83,6 @@ io.on("connection", (socket) => {
             code: "SERVER_NOT_READY"
         });
     }
-
-    // ==================== AUTENTICACIÓN ====================
     
     socket.on("authenticate", async (data) => {
         console.log("Intento de autenticación:", data);
@@ -189,8 +178,6 @@ io.on("connection", (socket) => {
         socket.emit("readyStatus", result);
     });
 
-    // COMANDOS DE JUEGO
-
     socket.on("gameCommand", (data) => {
         if (!roomManager) return;
 
@@ -202,8 +189,6 @@ io.on("connection", (socket) => {
         }
     });
 
-    // CHAT
-
     socket.on("chatMessage", (data) => {
         if (!roomManager) return;
 
@@ -212,7 +197,6 @@ io.on("connection", (socket) => {
 
         const { message } = data;
         
-        // Broadcast del mensaje a todos en la sala
         io.to(`room_${user.currentRoom}`).emit("chatMessage", {
             userId: user.userId,
             username: user.username,
@@ -222,8 +206,6 @@ io.on("connection", (socket) => {
         
         console.log(`[${user.username}]: ${message}`);
     });
-
-    // DESCONEXIÓN
     
     socket.on("disconnect", () => {
         console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
