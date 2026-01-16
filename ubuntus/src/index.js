@@ -139,7 +139,7 @@ io.on("connection", (socket) => {
     socket.on("joinRoomAsViewer", (name) => {
         socket.join(name);
         socket.emit("roomJoined", true);
-        game.push(data);
+        game.push(name);
     });
     socket.on("leaveRoomAsViewer", (name) => {
         socket.leave(name);

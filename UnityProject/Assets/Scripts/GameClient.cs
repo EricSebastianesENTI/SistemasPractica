@@ -121,7 +121,7 @@ public class GameClient : MonoBehaviour
     void OnDisconnected(object sender, string reason)
     {
         isConnected = false;
-        Debug.LogWarning($"Desconectado del servidor. Raz�n: {reason}");
+        Debug.LogWarning($"Desconectado del servidor. Razon: {reason}");
         playersData.Clear();
     }
 
