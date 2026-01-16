@@ -41,6 +41,10 @@ public class GameClient : MonoBehaviour
     {
         socket.Emit("joinRoomAsViewer", name);
     }
+    public void ExitRoom(string name)
+    {
+        socket.Emit("leaveRoomAsViewer", name);
+    }
     void ConnectToServer()
     {
         try
