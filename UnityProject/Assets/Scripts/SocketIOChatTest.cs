@@ -8,7 +8,7 @@ public class SocketIOChatTest : MonoBehaviour
     public string username = "UnityUser";
 
     public SocketIOUnity _socket;
-    public string serverUrlLink = "http://192.168.1.56:3000/";
+    public string serverUrlLink = "http://10.0.2.15:3000/";
 
     void Start()
     {
