@@ -40,6 +40,10 @@ public class RoomListManager : MonoBehaviour
         }
         if(createButton)
         {
+            foreach(Transform t in roomListContent)
+            {
+                Destroy(t.gameObject);
+            }
             foreach (string i in array)
             {
                 Instantiate(roomButtonPrefab, roomListContent);
