@@ -144,9 +144,9 @@ io.on("connection", (socket) => {
     socket.on("leaveRoomAsViewer", (name) => {
         socket.leave(name);
         socket.emit("roomLeft", true);
-        
+        cons
         let index = game.indexOf(name);
-
+        console.log("Se ha salido de la sala");
         if (index !== -1) {
             game.splice(index, 1);
         }
