@@ -307,6 +307,7 @@ public class GameClient : MonoBehaviour
         {
             Debug.Log($"Sala recibida: {val}");
         }
+        roomListManager.OnRoomsListReceived(values);
         // roomList.UpdateRoomList(values.ToList());
     }
 
