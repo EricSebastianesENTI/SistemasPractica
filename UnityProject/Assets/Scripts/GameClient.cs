@@ -1,8 +1,10 @@
-using UnityEngine;
+using Newtonsoft.Json.Linq;
 using SocketIOClient;
 using System;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using UnityEngine;
 
 public class GameClient : MonoBehaviour
 {
@@ -300,57 +302,12 @@ public class GameClient : MonoBehaviour
 
     void OnRoomsList(SocketIOResponse response)
     {
-        try
+        string[] values = response.GetValue().Deserialize<string[]>();
+        foreach (string val in values)
         {
-            Debug.Log("=== DEBUG OnRoomsList ===");
-
-            // CORRECCIÓN: No hacer ToString() y Parse, usar GetValue directamente
-            JArray roomsArray = null;
-
-            // Opción 1: Si response tiene GetValue
-            if (response.GetValue() is JArray)
-            {
-                roomsArray = response.GetValue<JArray>();
-            }
-            // Opción 2: Si no, parsear el ToString pero verificar primero
-            else
-            {
-                string json = response.ToString();
-                Debug.Log($"JSON recibido: {json}");
-
-                // Verificar si empieza con [ (es array)
-                if (json.TrimStart().StartsWith("["))
-                {
-                    roomsArray = JArray.Parse(json);
-                }
-                else
-                {
-                    Debug.LogError($"El JSON no es un array: {json}");
-                    return;
-                }
-            }
-
-            if (roomsArray == null)
-            {
-                Debug.LogError("No se pudo parsear el array de rooms");
-                return;
-            }
-
-            Debug.Log($"Total de salas: {roomsArray.Count}");
-
-            if (roomListManager != null)
-            {
-                roomListManager.OnRoomsListReceived(roomsArray);
-            }
-            else
-            {
-                Debug.LogWarning("RoomListManager no está asignado");
-            }
+            Debug.Log($"Sala recibida: {val}");
         }
-        catch (Exception ex)
-        {
-            Debug.LogError($"Error en OnRoomsList: {ex.Message}\n{ex.StackTrace}");
-        }
+        // roomList.UpdateRoomList(values.ToList());
     }
 
     void OnRoomJoined(SocketIOResponse response)

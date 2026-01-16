@@ -319,6 +319,7 @@ class RoomManager {
         user.currentRoom = null;
         user.isViewer = false;
 
+        console.log(Array.from(io.of("/").adapter.rooms.keys()));
         this.io.to(`room_${roomId}`).emit('userLeft',Array.from(io.of("/").adapter.rooms.keys()));
 
         // Si no quedan jugadores Y el juego NO está activo, eliminar la sala
