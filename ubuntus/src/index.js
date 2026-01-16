@@ -72,8 +72,6 @@ setTimeout(() => {
 
 app.use(require("./routes/_routes"));
 
-
-game = [];
 io.on("connection", (socket) => {
     var address = socket.request.connection;
     console.log("Socket connected --> " + address.remoteAddress + ":" + address.remotePort);
@@ -115,7 +113,7 @@ io.on("connection", (socket) => {
             socket.emit("error", { message: "Server not ready" });
             return;
         }
-        
+
         const { roomName } = data;
         console.log("Creando sala:", roomName);
         const result = await roomManager.createRoom(socket.id, roomName);
@@ -124,32 +122,21 @@ io.on("connection", (socket) => {
     });
 
     socket.on("joinRoomAsPlayer", async (data) => {
+        if (!roomManager) {
+            socket.emit("error", { message: "Server not ready" });
+            return;
+        }
 
         const { roomId } = data;
         console.log("Unirse como jugador a sala:", roomId);
         const result = await roomManager.joinRoomAsPlayer(socket.id, roomId);
         
         socket.emit("roomJoined", result);
-        if (game.length == 0)
-        {
-
-        }
     });
 
     socket.on("joinRoomAsViewer", (name) => {
         socket.join(name);
         socket.emit("roomJoined", true);
-        game.push(data);
-    });
-    socket.on("leaveRoomAsViewer", (name) => {
-        socket.leave(name);
-        socket.emit("roomLeft", true);
-        
-        let index = game.indexOf(name);
-
-        if (index !== -1) {
-            game.splice(index, 1);
-        }
     });
 
     socket.on("leaveRoom", (data) => {
