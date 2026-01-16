@@ -8,6 +8,7 @@ public class ExitButton : MonoBehaviour, IPointerClickHandler
     public void OnPointerClick(PointerEventData eventData)
     {
         GameClient.Instance.ExitRoom(GameClient.Instance.currentRoomName);
+
     }
 }
 

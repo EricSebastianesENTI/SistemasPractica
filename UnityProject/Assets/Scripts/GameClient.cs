@@ -71,6 +71,7 @@ public class GameClient : MonoBehaviour
     public void ExitRoom(string name)
     {
         socket.Emit("leaveRoomAsViewer", name);
+        Debug.Log($"Saliendo de sala '{name}' como espectador...");
     }
     void ConnectToServer()
     {
