@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Columns Online - Lobby</title>
+    <link rel="stylesheet" href="/styles/lobby.css">
+</head>
+<body>
+    <!-- Pantalla de Login -->
+    <div id="login-screen" class="screen active">
+        <div class="container">
+            <h1> Columns Online</h1>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="login">Login</button>
+                <button class="tab-btn" data-tab="register">Register</button>
+            </div>
+
+            <!-- Tab Login -->
+            <div id="login-tab" class="tab-content active">
+                <form id="login-form">
+                    <input type="text" id="login-username" placeholder="Username" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                    <button type="submit">Login</button>
+                </form>
+                <div id="login-error" class="error"></div>
+            </div>
+
+            <!-- Tab Register -->
+            <div id="register-tab" class="tab-content">
+                <form id="register-form">
+                    <input type="text" id="register-username" placeholder="Username" required>
+                    <input type="password" id="register-password" placeholder="Password" required>
+                    <button type="submit">Register</button>
+                </form>
+                <div id="register-error" class="error"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de Lobby -->
+    <div id="lobby-screen" class="screen">
+        <div class="container">
+            <div class="header">
+                <h1> Lobby</h1>
+                <div class="user-info">
+                    <span id="username-display"></span>
+                    <button id="logout-btn">Logout</button>
+                </div>
+            </div>
+
+            <div class="create-room">
+                <input type="text" id="room-name-input" placeholder="Room name..." maxlength="30">
+                <button id="create-room-btn">Create Room</button>
+            </div>
+
+            <div class="rooms-list">
+                <h2>Available Rooms</h2>
+                <div id="rooms-container">
+                    <p class="no-rooms">No rooms available. Create one!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de Sala de Espera -->
+    <div id="waiting-room-screen" class="screen">
+        <div class="container">
+            <div class="header">
+                <h2 id="room-title"></h2>
+                <button id="leave-room-btn">Leave Room</button>
+            </div>
+
+            <div class="players-container">
+                <div class="player-slot">
+                    <h3>Player 1</h3>
+                    <p id="player1-name">Waiting...</p>
+                    <span id="player1-status" class="status">Not Ready</span>
+                </div>
+                <div class="vs">VS</div>
+                <div class="player-slot">
+                    <h3>Player 2</h3>
+                    <p id="player2-name">Waiting...</p>
+                    <span id="player2-status" class="status">Not Ready</span>
+                </div>
+            </div>
+
+            <div class="ready-section">
+                <button id="ready-btn" class="ready-btn">I'm Ready!</button>
+            </div>
+
+            <div class="waiting-message">
+                <p>Waiting for both players to be ready...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/lobby.js"></script>
+</body>
+</html>
