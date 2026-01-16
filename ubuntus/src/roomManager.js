@@ -324,14 +324,14 @@ class RoomManager {
 
     getRoomsList() {
         const rooms = [];
-        
+
         this.activeRooms.forEach((room, roomId) => {
             rooms.push({
-                id: roomId,
+                id: parseInt(roomId),              
                 name: room.name,
                 status: room.status,
-                playersCount: room.players.length,
-                viewersCount: room.viewers.length,
+                playersCount: room.players.length,  
+                viewersCount: room.viewers.length,  
                 players: room.players.map(p => ({
                     username: p.username,
                     isReady: p.isReady
