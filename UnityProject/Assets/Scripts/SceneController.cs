@@ -5,19 +5,17 @@ public class SceneController : MonoBehaviour
     [SerializeField] GameObject salas;
     [SerializeField] GameObject replays;
     [SerializeField] GameObject returnBut;
-    public static SceneController Instance => instance;
-    private static SceneController instance;
-    void Awake()
+    public static SceneController Instance { get; private set; }
+    private void Awake()
     {
-        if (instance == null)
+        if (Instance == null)
         {
-            instance = this;
+            Instance = this;
             DontDestroyOnLoad(gameObject);
         }
         else
         {
             Destroy(gameObject);
-            return;
         }
     }
     public void ShowSalas()
