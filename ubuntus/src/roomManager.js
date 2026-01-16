@@ -223,121 +223,139 @@ class RoomManager {
         }
     }
 
-    // MÉTODO CORREGIDO: joinRoomAsViewer
-    joinRoomAsViewer(socketId, roomId) {
-        const user = this.getUser(socketId);
-        
-        if (!user) {
-            return { status: 'error', message: 'User not authenticated' };
-        }
-
-        const room = this.activeRooms.get(roomId);
-        
-        if (!room) {
-            return { status: 'error', message: 'Room not found' };
-        }
-
-        // Verificar si ya es viewer
-        const alreadyViewer = room.viewers.find(v => v.socketId === socketId);
-        if (alreadyViewer) {
-            return { status: 'error', message: 'Already viewing this room' };
-        }
-
-        // Añadir como viewer
-        room.viewers.push({
-            socketId: socketId,
-            userId: user.userId,
-            username: user.username
-        });
-        
-        user.currentRoom = roomId;
-        user.isViewer = true;
-
-        // Unir al socket a la room
-        const socket = this.io.sockets.sockets.get(socketId);
-        if (socket) {
-            socket.join(`room_${roomId}`);
-        }
-
-        console.log(`${user.username} se unió como espectador a sala ${roomId}`);
-
-        // IMPORTANTE: Si hay un juego activo, enviar gameInit al espectador
-        if (room.gameController) {
-            console.log(`Enviando gameInit al espectador ${user.username}`);
-            room.gameController.sendGameInitToViewer(socketId);
-            
-            // Actualizar estado de pausa si es necesario
-            const hasViewers = room.viewers.length > 0;
-            room.gameController.togglePause(hasViewers);
-        }
-
-        // Notificar a otros en la sala
-        this.io.to(`room_${roomId}`).emit('viewerJoined', {
-            username: user.username,
-            viewersCount: room.viewers.length
-        });
-
-        // Actualizar lista de salas para todos
-        this.broadcastRoomsList();
-
-        return {
-            status: 'success',
-            roomData: this.serializeRoomData(room)
-        };
+joinRoomAsViewer(socketId, roomId) {
+    const user = this.getUser(socketId);
+    
+    if (!user) {
+        console.log(`Usuario no encontrado para socket ${socketId}`);
+        return { status: 'error', message: 'User not authenticated' };
     }
 
-    leaveRoom(socketId, roomId) {
-        const user = this.getUser(socketId);
-        const room = this.activeRooms.get(roomId);
-
-        if (!room || !user) return;
-
-        // Remover de jugadores
-        const playerIndex = room.players.findIndex(p => p.socketId === socketId);
-        if (playerIndex !== -1) {
-            room.players.splice(playerIndex, 1);
-            console.log(`${user.username} salió de la sala ${roomId} (jugador)`);
-        }
-
-        // Remover de espectadores
-        const viewerIndex = room.viewers.findIndex(v => v.socketId === socketId);
-        if (viewerIndex !== -1) {
-            room.viewers.splice(viewerIndex, 1);
-            console.log(`${user.username} salió de la sala ${roomId} (espectador)`);
-            
-            // Si no quedan viewers, pausar el juego
-            if (room.gameController && room.viewers.length === 0) {
-                room.gameController.togglePause(false);
-            }
-        }
-
-        // Salir de la sala de Socket.IO
-        const socket = this.io.sockets.sockets.get(socketId);
-        if (socket) {
-            socket.leave(`room_${roomId}`);
-        }
-        user.currentRoom = null;
-        user.isViewer = false;
-
-        console.log(Array.from(io.of("/").adapter.rooms.keys()));
-        this.io.to(`room_${roomId}`).emit('userLeft',Array.from(io.of("/").adapter.rooms.keys()));
-
-        // Si no quedan jugadores Y el juego NO está activo, eliminar la sala
-        if (room.players.length === 0) {
-            // Si hay un juego en curso, NO eliminar la sala (permitir reconexión)
-            if (room.status === 'waiting' || room.status === 'finished') {
-                if (room.gameController) {
-                    room.gameController.stop();
-                }
-                this.activeRooms.delete(roomId);
-                console.log(`Sala ${roomId} eliminada (sin jugadores)`);
-            } else {
-                console.log(`Sala ${roomId} - todos desconectados temporalmente (juego en curso)`);
-            }
-        }
-
-        this.broadcastRoomsList();
+    const room = this.activeRooms.get(roomId);
+    
+    if (!room) {
+        console.log(`Sala ${roomId} no encontrada`);
+        return { status: 'error', message: 'Room not found' };
     }
+
+    // Verificar si ya es viewer
+    const alreadyViewer = room.viewers.find(v => v.socketId === socketId);
+    if (alreadyViewer) {
+        console.log(`${user.username} ya es viewer de sala ${roomId}`);
+        return { status: 'error', message: 'Already viewing this room' };
+    }
+
+    // Añadir como viewer
+    room.viewers.push({
+        socketId: socketId,
+        userId: user.userId,
+        username: user.username
+    });
+    
+    user.currentRoom = roomId;
+    user.isViewer = true;
+
+    // Unir al socket a la room
+    const socket = this.io.sockets.sockets.get(socketId);
+    if (socket) {
+        socket.join(`room_${roomId}`);
+        console.log(`Socket ${socketId} unido a room_${roomId}`);
+    }
+
+    console.log(`${user.username} se unió como espectador a sala ${roomId}`);
+    console.log(`Viewers actuales: ${room.viewers.length}`);
+
+    // CRÍTICO: Si hay un juego activo, enviar gameInit y REANUDAR
+    if (room.gameController) {
+        console.log(`🎮 Hay GameController activo, enviando gameInit...`);
+        
+        // Enviar gameInit al espectador
+        room.gameController.sendGameInitToViewer(socketId);
+        
+        // IMPORTANTE: Reanudar el juego si estaba pausado
+        console.log(`▶Reanudando juego (hay ${room.viewers.length} viewer(s))`);
+        room.gameController.togglePause(true); // true = hay viewers
+        
+        // Dar tiempo para que Unity procese gameInit, luego enviar estado
+        setTimeout(() => {
+            console.log(`Enviando gameState inicial...`);
+            room.gameController.broadcastGameState();
+        }, 100);
+    } else {
+        console.log(`No hay GameController - sala en estado: ${room.status}`);
+    }
+
+    // Notificar a otros en la sala
+    this.io.to(`room_${roomId}`).emit('viewerJoined', {
+        username: user.username,
+        viewersCount: room.viewers.length
+    });
+
+    // Actualizar lista de salas para todos
+    this.broadcastRoomsList();
+
+    return {
+        status: 'success',
+        roomData: this.serializeRoomData(room),
+        viewersCount: room.viewers.length
+    };
+}
+
+    // Solo la parte del método leaveRoom que tiene el error:
+
+leaveRoom(socketId, roomId) {
+    const user = this.getUser(socketId);
+    const room = this.activeRooms.get(roomId);
+
+    if (!room || !user) return;
+
+    // Remover de jugadores
+    const playerIndex = room.players.findIndex(p => p.socketId === socketId);
+    if (playerIndex !== -1) {
+        room.players.splice(playerIndex, 1);
+        console.log(`${user.username} salió de la sala ${roomId} (jugador)`);
+    }
+
+    // Remover de espectadores
+    const viewerIndex = room.viewers.findIndex(v => v.socketId === socketId);
+    if (viewerIndex !== -1) {
+        room.viewers.splice(viewerIndex, 1);
+        console.log(`${user.username} salió de la sala ${roomId} (espectador)`);
+        
+        // Si no quedan viewers, pausar el juego
+        if (room.gameController && room.viewers.length === 0) {
+            room.gameController.togglePause(false);
+        }
+    }
+
+    // Salir de la sala de Socket.IO
+    const socket = this.io.sockets.sockets.get(socketId);
+    if (socket) {
+        socket.leave(`room_${roomId}`);
+    }
+    user.currentRoom = null;
+    user.isViewer = false;
+
+    // CORRECCIÓN: cambiar 'io' por 'this.io'
+    const activeRooms = Array.from(this.io.of("/").adapter.rooms.keys());
+    console.log("Salas activas:", activeRooms);
+    this.io.to(`room_${roomId}`).emit('userLeft', activeRooms);
+
+    // Si no quedan jugadores Y el juego NO está activo, eliminar la sala
+    if (room.players.length === 0) {
+        if (room.status === 'waiting' || room.status === 'finished') {
+            if (room.gameController) {
+                room.gameController.stop();
+            }
+            this.activeRooms.delete(roomId);
+            console.log(`Sala ${roomId} eliminada (sin jugadores)`);
+        } else {
+            console.log(`Sala ${roomId} - todos desconectados temporalmente (juego en curso)`);
+        }
+    }
+
+    this.broadcastRoomsList();
+}
 
     // MÉTODO CORREGIDO: getRoomsList
     getRoomsList() {

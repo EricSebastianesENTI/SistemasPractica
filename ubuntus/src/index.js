@@ -134,9 +134,41 @@ io.on("connection", (socket) => {
         socket.emit("roomJoined", result);
     });
 
-    socket.on("joinRoomAsViewer", (name) => {
-        socket.join(name);
-        socket.emit("roomJoined", true);
+    // ARREGLO CRÍTICO: Evento joinRoomAsViewer corregido
+    socket.on("joinRoomAsViewer", (roomName) => {
+        if (!roomManager) {
+            socket.emit("error", { message: "Server not ready" });
+            return;
+        }
+
+        console.log(`🔍 Unity intenta unirse como viewer a sala: "${roomName}"`);
+
+        // Buscar la sala por nombre
+        const rooms = roomManager.getRoomsList();
+        const targetRoom = rooms.find(r => r.name === roomName);
+
+        if (!targetRoom) {
+            console.log(`❌ Sala "${roomName}" no encontrada`);
+            socket.emit("error", { message: `Room "${roomName}" not found` });
+            return;
+        }
+
+        console.log(`✅ Sala encontrada: ID ${targetRoom.id}, estado: ${targetRoom.status}`);
+
+        // Usar el método del RoomManager con el roomId
+        const result = roomManager.joinRoomAsViewer(socket.id, targetRoom.id);
+
+        if (result.status === 'success') {
+            console.log(`✅ Viewer unido a sala ${targetRoom.id}`);
+            socket.emit("roomJoined", {
+                status: "success",
+                roomId: targetRoom.id,
+                roomName: roomName
+            });
+        } else {
+            console.log(`❌ Error al unir viewer:`, result);
+            socket.emit("error", result);
+        }
     });
 
     socket.on("leaveRoom", (data) => {
@@ -150,8 +182,17 @@ io.on("connection", (socket) => {
     });
 
     socket.on("getRooms", () => {
-        console.log("Enviando" + Array.from(io.of("/").adapter.rooms.keys() + "salas"));
-        socket.emit("roomsList", Array.from(io.of("/").adapter.rooms.keys()));
+        if (!roomManager) {
+            socket.emit("roomsList", []);
+            return;
+        }
+
+        const rooms = roomManager.getRoomsList();
+        console.log(`📋 Enviando ${rooms.length} salas`);
+        
+        // Enviar array de nombres para Unity
+        const roomNames = rooms.map(r => r.name);
+        socket.emit("roomsList", roomNames);
     });
 
     socket.on("setReady", (data) => {

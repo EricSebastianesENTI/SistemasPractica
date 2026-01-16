@@ -340,6 +340,7 @@ public class GameClient : MonoBehaviour
     void OnRoomJoined(SocketIOResponse response)
     {
         Debug.Log("Unido a sala: " + response.ToString());
+        Debug.Log("Esperando gameInit del servidor...");
     }
 
     public void GetRoomsList()
