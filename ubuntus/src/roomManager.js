@@ -319,10 +319,7 @@ class RoomManager {
         user.currentRoom = null;
         user.isViewer = false;
 
-        this.io.to(`room_${roomId}`).emit('userLeft', {
-            username: user.username,
-            roomData: this.serializeRoomData(room)
-        });
+        this.io.to(`room_${roomId}`).emit('userLeft',Array.from(io.of("/").adapter.rooms.keys()));
 
         // Si no quedan jugadores Y el juego NO está activo, eliminar la sala
         if (room.players.length === 0) {
