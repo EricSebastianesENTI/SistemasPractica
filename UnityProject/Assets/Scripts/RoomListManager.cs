@@ -103,8 +103,8 @@ public class RoomListManager : MonoBehaviour
             {
                 Debug.Log($"Procesando sala: {roomObj.ToString()}");
 
-                // MÉTODO 1: Casting seguro con Value<T>
-                int roomId = roomObj.Value<int>("id");
+                // Parsear campos (el servidor envía id como string)
+                int roomId = int.Parse(roomObj.Value<string>("id"));
                 string roomName = roomObj.Value<string>("name");
                 string status = roomObj.Value<string>("status");
                 int playersCount = roomObj.Value<int>("playersCount");
