@@ -412,7 +412,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   input: {fileID: 249420676}
   username: UnityUser
-  serverUrlLink: http://10.0.2.15:3000/
+  serverUrlLink: http://192.168.1.56:3000/
 --- !u!4 &132415440
 Transform:
   m_ObjectHideFlags: 0
@@ -2830,7 +2830,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a02bfccffc54e8041810e50959889789, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: http://10.0.2.15:3000/
+  serverUrl: http://192.168.1.56:3000/
   nodeGrid: {fileID: 1770388029}
   scoreUI: {fileID: 0}
   roomListManager: {fileID: 1378430468}
