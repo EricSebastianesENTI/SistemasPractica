@@ -9,7 +9,6 @@ public class RoomListUI : MonoBehaviour
 
     void Start()
     {
-        // Solicitar lista de salas
         gameClient.GetRoomsList();
     }
 
@@ -21,12 +20,9 @@ public class RoomListUI : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-        // Crear botones para cada sala
         foreach (var room in rooms)
         {
             GameObject btn = Instantiate(roomButtonPrefab, roomListContainer);
-            // Configurar botón con datos de la sala
-            // btn.GetComponent<RoomButton>().Setup(room, gameClient);
         }
     }
 }

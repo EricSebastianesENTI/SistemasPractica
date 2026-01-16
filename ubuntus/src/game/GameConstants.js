@@ -22,13 +22,12 @@ const JewelNames = {
 
 
 const GRID_CONFIG = {
-    WIDTH: 6,      // 6 columnas
-    HEIGHT: 13,    // 13 filas
+    WIDTH: 6,      
+    HEIGHT: 13,    
     
 
     SPAWN_ROW: 12,
     
-    // Fila donde si hay una joya te mueres
     DEATH_ROW: 12
 };
 

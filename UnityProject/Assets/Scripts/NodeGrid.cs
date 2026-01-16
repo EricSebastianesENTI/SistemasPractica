@@ -89,7 +89,6 @@ public class NodeGrid : MonoBehaviour
         public int sizeY;
     }
 
-    // CONFIGURACIÓN VISUAL
     [Header("Visual Settings")]
     [SerializeField] private GameObject jewelCellPrefab;
     [SerializeField] private float cellSize = 1f;
@@ -105,7 +104,6 @@ public class NodeGrid : MonoBehaviour
     [SerializeField] private Color purpleColor = new Color(0.5f, 0f, 1f);
     [SerializeField] private Color shinyColor = Color.white;
 
-    // DATOS
     private Grid _grid;
     private Dictionary<Vector2Int, GameObject> _visualCells = new();
 
@@ -132,10 +130,8 @@ public class NodeGrid : MonoBehaviour
                 GameObject cell = Instantiate(jewelCellPrefab, position, Quaternion.identity, transform);
                 cell.name = $"Cell_{x}_{y}";
 
-                // Guardar referencia
                 _visualCells[new Vector2Int(x, y)] = cell;
 
-                // Inicialmente invisible o gris
                 SetCellColor(cell, Node.JewelType.None);
             }
         }
@@ -153,14 +149,12 @@ public class NodeGrid : MonoBehaviour
 
         foreach (var node in gridUpdate.updatedNodes)
         {
-            // Actualizar datos
             var gridNode = _grid.GetNode(node.x, node.y);
             if (gridNode != null)
             {
                 gridNode.type = node.type;
             }
 
-            // Actualizar visual
             UpdateCellVisual(node.x, node.y, node.type);
         }
     }
@@ -180,7 +174,6 @@ public class NodeGrid : MonoBehaviour
         Renderer renderer = cell.GetComponent<Renderer>();
         if (renderer == null)
         {
-            // Si es 2D, intentar con SpriteRenderer
             SpriteRenderer spriteRenderer = cell.GetComponent<SpriteRenderer>();
             if (spriteRenderer != null)
             {
@@ -189,7 +182,6 @@ public class NodeGrid : MonoBehaviour
             return;
         }
 
-        // Para 3D
         renderer.material.color = GetColorForJewelType(type);
     }
 
@@ -232,34 +224,4 @@ public class NodeGrid : MonoBehaviour
         ClearVisualGrid();
     }
 
-    // MÉTODO DE PRUEBA - Puedes eliminarlo después
-    private void Start()
-    {
-        // Ejemplo de uso (descomenta para probar)
-        /*
-        SetupGrid(new GridSetup
-        {
-            playerId = 0,
-            playerName = "Test Player",
-            sizeX = 6,
-            sizeY = 13
-        });
-
-        // Simular actualización
-        GridUpdate update = new GridUpdate
-        {
-            playerId = 0,
-            playerName = "Test Player",
-            updatedNodes = new List<Node>
-            {
-                new Node(Node.JewelType.Red, 0, 0),
-                new Node(Node.JewelType.Green, 1, 0),
-                new Node(Node.JewelType.Blue, 2, 0),
-                new Node(Node.JewelType.Yellow, 0, 1)
-            }
-        };
-
-        UpdateGrid(update);
-        */
-    }
 }

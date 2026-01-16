@@ -23,7 +23,7 @@ public class ScoreUI : MonoBehaviour
     {
         if (player1Display.usernameText != null)
         {
-            playerDisplays[0] = player1Display; // Temporal hasta recibir IDs reales
+            playerDisplays[0] = player1Display; 
         }
 
         if (player2Display.usernameText != null)
@@ -34,7 +34,6 @@ public class ScoreUI : MonoBehaviour
 
     public void UpdateScore(int playerId, string username, int score)
     {
-        // Buscar display para este jugador
         PlayerScoreDisplay display = GetOrCreateDisplay(playerId);
 
         if (display != null)
@@ -53,7 +52,6 @@ public class ScoreUI : MonoBehaviour
 
     private PlayerScoreDisplay GetOrCreateDisplay(int playerId)
     {
-        // Asignar displays dinámicamente
         if (!playerDisplays.ContainsKey(playerId))
         {
             if (playerDisplays.Count == 0 && player1Display.usernameText != null)

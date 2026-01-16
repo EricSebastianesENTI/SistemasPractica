@@ -3,52 +3,46 @@ const Piece = require('./Piece');
 const MatchDetector = require('./MatchDetector');
 const { GAME_CONFIG, GAME_STATE, GAME_COMMANDS, GRID_CONFIG } = require('./GameConstants');
 
-class GameController {
-    constructor(roomId, player1, player2, io) {
+class GameController
+{
+    constructor(roomId, player1, player2, io)
+    {
         this.roomId = roomId;
         this.io = io;
         
-        // Estados de juego
         this.state = GAME_STATE.STARTING;
         this.isPaused = false;
         this.hasViewers = false;
         
-        // Guardar info de jugadores
         this.players = {
             [player1.userId]: { userId: player1.userId, username: player1.username },
             [player2.userId]: { userId: player2.userId, username: player2.username }
         };
         
-        // Grids de jugadores
         this.grids = {
             [player1.userId]: new Grid(player1.userId, player1.username),
             [player2.userId]: new Grid(player2.userId, player2.username)
         };
         
-        // Piezas actuales
         this.currentPieces = {
             [player1.userId]: new Piece(),
             [player2.userId]: new Piece()
         };
         
-        // Puntuaciones
         this.scores = {
             [player1.userId]: 0,
             [player2.userId]: 0
         };
         
-        // Histórico para replay
         this.gameplayHistory = [];
         
-        // Timers
         this.gameLoopInterval = null;
         this.tickRate = GAME_CONFIG.INITIAL_TICK_RATE;
         
-        console.log(`GameController creado para sala ${roomId}`);
     }
     
-    // NUEVO: Enviar gameInit a un espectador que acaba de unirse
-    sendGameInitToViewer(socketId) {
+    sendGameInitToViewer(socketId)
+    {
         const playerIds = Object.keys(this.players);
         
         const initData = {
@@ -63,15 +57,14 @@ class GameController {
             }))
         };
         
-        console.log(`Enviando gameInit a espectador ${socketId}:`, initData);
+        
         this.io.to(socketId).emit('gameInit', initData);
         
-        // Enviar estado actual inmediatamente después
         this.broadcastGameState();
     }
     
-    // Iniciar el juego
-    start() {
+    start()
+    {
         this.state = GAME_STATE.PLAYING;
         
         // Enviar gameInit a todos primero
@@ -88,50 +81,48 @@ class GameController {
             }))
         };
         
-        console.log('Enviando gameInit a todos:', initData);
         this.io.to(`room_${this.roomId}`).emit('gameInit', initData);
         
-        // Enviar estado inicial
         this.broadcastGameState();
         
-        // Iniciar loop del juego
         this.startGameLoop();
         
         this.logEvent('game_started', { timestamp: Date.now() });
     }
     
-    // Loop principal del juego
     startGameLoop() {
         this.gameLoopInterval = setInterval(() => {
             if (this.isPaused || this.state !== GAME_STATE.PLAYING) return;
             
-            // Mover piezas hacia abajo
-            for (const playerId in this.currentPieces) {
+            for (const playerId in this.currentPieces)
+            {
                 this.movePieceDown(playerId);
             }
             
-            // Broadcast del estado actualizado
             this.broadcastGameState();
             
         }, this.tickRate);
     }
     
-    // Procesar comando de jugador
-    handlePlayerCommand(playerId, command) {
+    handlePlayerCommand(playerId, command)
+    {
         if (this.state !== GAME_STATE.PLAYING || this.isPaused) return;
         
         const piece = this.currentPieces[playerId];
         const grid = this.grids[playerId];
         
-        switch(command) {
+        switch (command)
+        {
             case GAME_COMMANDS.MOVE_LEFT:
-                if (piece.canMove(grid, -1)) {
+                if (piece.canMove(grid, -1))
+                {
                     piece.move(-1);
                 }
                 break;
                 
             case GAME_COMMANDS.MOVE_RIGHT:
-                if (piece.canMove(grid, 1)) {
+                if (piece.canMove(grid, 1))
+                {
                     piece.move(1);
                 }
                 break;
@@ -142,9 +133,8 @@ class GameController {
                 
             case GAME_COMMANDS.ROTATE:
                 piece.rotate();
-                // Verificar si es posición válida después de rotar
-                if (!piece.canMoveDown(grid)) {
-                    // Revertir rotación si no es válida
+                if (!piece.canMoveDown(grid))
+                {
                     piece.rotate();
                     piece.rotate();
                 }
@@ -159,63 +149,58 @@ class GameController {
         this.broadcastGameState();
     }
     
-    // Mover pieza hacia abajo
-    movePieceDown(playerId) {
+    movePieceDown(playerId)
+    {
         const piece = this.currentPieces[playerId];
         const grid = this.grids[playerId];
         
-        if (piece.canMoveDown(grid)) {
+        if (piece.canMoveDown(grid))
+        {
             piece.moveDown();
-        } else {
-            // La pieza llegó al fondo - colocarla
+        } else
+        {
             this.placePiece(playerId);
         }
     }
-    
-    // Colocar pieza en el grid
-    placePiece(playerId) {
+    placePiece(playerId)
+    {
         const piece = this.currentPieces[playerId];
         const grid = this.grids[playerId];
         
-        // Colocar la pieza
         piece.placeInGrid(grid);
         
-        // Procesar matches
         this.processMatches(playerId);
         
-        // Generar nueva pieza
         this.currentPieces[playerId] = new Piece();
         
-        // Verificar game over
-        if (!this.currentPieces[playerId].isValidSpawn(grid)) {
+        if (!this.currentPieces[playerId].isValidSpawn(grid))
+        {
             this.handleGameOver(playerId);
         }
         
         this.logEvent('piece_placed', { playerId, timestamp: Date.now() });
     }
     
-    // Procesar matches y gravedad
-    processMatches(playerId) {
+    processMatches(playerId)
+    {
         const grid = this.grids[playerId];
         let comboCount = 0;
         
-        // Loop hasta que no haya más matches
-        while (true) {
-            // Buscar matches
+        while (true)
+        {
             const matchResult = MatchDetector.processMatches(grid);
             
             if (!matchResult.matchesFound) break;
             
             comboCount++;
             
-            // Aplicar gravedad
             grid.applyGravityUntilStable();
             
-            // Calcular puntos (con multiplicador de combo)
             const points = matchResult.points * (1 + comboCount * 0.5);
             this.scores[playerId] += Math.floor(points);
             
-            this.logEvent('matches_found', {
+            this.logEvent('matches_found',
+                {
                 playerId,
                 matchCount: matchResult.matchCount,
                 points: points,
@@ -224,79 +209,79 @@ class GameController {
             });
         }
         
-        // Acelerar juego si alcanza threshold
-        if (this.scores[playerId] > 0 && this.scores[playerId] % GAME_CONFIG.SPEED_UP_THRESHOLD === 0) {
+        if (this.scores[playerId] > 0 && this.scores[playerId] % GAME_CONFIG.SPEED_UP_THRESHOLD === 0)
+        {
             this.speedUp();
         }
     }
     
-    // Caída rápida
-    fastDrop(playerId) {
+    fastDrop(playerId)
+    {
         const piece = this.currentPieces[playerId];
         const grid = this.grids[playerId];
         
-        while (piece.canMoveDown(grid)) {
+        while (piece.canMoveDown(grid))
+        {
             piece.moveDown();
         }
         
         this.placePiece(playerId);
     }
     
-    // Acelerar el juego
-    speedUp() {
-        if (this.tickRate > GAME_CONFIG.MIN_TICK_RATE) {
+    speedUp()
+    {
+        if (this.tickRate > GAME_CONFIG.MIN_TICK_RATE)
+        {
             this.tickRate = Math.max(
                 this.tickRate - GAME_CONFIG.SPEED_UP_AMOUNT,
                 GAME_CONFIG.MIN_TICK_RATE
             );
             
-            // Reiniciar loop con nueva velocidad
             clearInterval(this.gameLoopInterval);
             this.startGameLoop();
             
-            console.log(`Juego acelerado - nuevo tickRate: ${this.tickRate}ms`);
         }
     }
     
-    // Manejar game over
-    handleGameOver(loserId) {
+    handleGameOver(loserId)
+    {
         this.state = GAME_STATE.GAME_OVER;
         clearInterval(this.gameLoopInterval);
         
-        // Determinar ganador
         const playerIds = Object.keys(this.scores);
         const winnerId = playerIds.find(id => id !== loserId);
         
-        this.logEvent('game_over', {
+        this.logEvent('game_over',
+            {
             winnerId,
             loserId,
             scores: this.scores,
             timestamp: Date.now()
         });
         
-        // Notificar a todos
         this.io.to(`room_${this.roomId}`).emit('gameOver', {
             winnerId: parseInt(winnerId),
             loserId: parseInt(loserId),
             scores: this.scores
         });
         
-        // Guardar replay (implementar después)
         this.saveReplay(winnerId);
     }
     
-    // Pausar/reanudar por falta de espectadores
-    togglePause(hasViewers) {
+    togglePause(hasViewers)
+    {
         this.hasViewers = hasViewers;
         
-        if (!hasViewers && !this.isPaused) {
+        if (!hasViewers && !this.isPaused)
+        {
             this.isPaused = true;
             console.log(`Juego pausado en sala ${this.roomId} - no hay espectadores C#`);
             
             this.io.to(`room_${this.roomId}`).emit('gamePaused', {
                 reason: 'No hay espectadores conectados'
             });
-        } else if (hasViewers && this.isPaused) {
+        } else if (hasViewers && this.isPaused)
+        {
             this.isPaused = false;
             console.log(`Juego reanudado en sala ${this.roomId}`);
             
@@ -304,11 +289,10 @@ class GameController {
         }
     }
     
-    // CORREGIDO: Enviar estado del juego en formato que Unity espera
-    broadcastGameState() {
+    broadcastGameState()
+    {
         const playerIds = Object.keys(this.players);
         
-        // Construir array de jugadores con TODA su info
         const playersData = playerIds.map(playerId => {
             const id = parseInt(playerId);
             return {
@@ -326,14 +310,14 @@ class GameController {
             isPaused: this.isPaused,
             tickRate: this.tickRate,
             timestamp: Date.now(),
-            players: playersData  // ← ESTO es lo que Unity espera
+            players: playersData 
         };
         
         this.io.to(`room_${this.roomId}`).emit('gameState', gameState);
     }
     
-    // Registrar evento para replay
-    logEvent(eventType, data) {
+    logEvent(eventType, data)
+    {
         this.gameplayHistory.push({
             type: eventType,
             data: data,
@@ -341,8 +325,8 @@ class GameController {
         });
     }
     
-    // Guardar replay en base de datos
-    async saveReplay(winnerId) {
+    async saveReplay(winnerId)
+    {
         console.log(`Guardando replay de sala ${this.roomId}...`);
         
         const playerIds = Object.keys(this.grids);
@@ -352,13 +336,12 @@ class GameController {
             duration: Date.now() - this.gameplayHistory[0].timestamp
         };
         
-        // Llamar a dbHelpers (necesitas acceso a la conexión de BD)
-        // await dbHelpers.saveGameReplay(connection, roomId, player1Id, player2Id, winnerId, gameplayData, duration);
     }
     
-    // Detener el juego completamente
-    stop() {
-        if (this.gameLoopInterval) {
+    stop()
+    {
+        if (this.gameLoopInterval)
+        {
             clearInterval(this.gameLoopInterval);
         }
         this.state = GAME_STATE.FINISHED;

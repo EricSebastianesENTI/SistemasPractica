@@ -19,7 +19,6 @@ router.use("/characters", require("./characters"));
 router.use("/weapons", require("./weapons"));
 router.use("/chat", require("./chat"));
 
-// API REST
 router.use("/api", require("./api"));
 
 module.exports = router;

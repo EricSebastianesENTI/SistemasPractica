@@ -10,8 +10,6 @@ public class SceneController : MonoBehaviour
     {
         ShowSalas();
     }
-
-
     public void ShowSalas()
     {
         salas.SetActive(true);

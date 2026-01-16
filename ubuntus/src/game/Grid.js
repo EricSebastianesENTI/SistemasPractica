@@ -1,7 +1,9 @@
 const { JewelType, GRID_CONFIG } = require('./GameConstants');
 
-class Grid {
-    constructor(playerId, playerName) {
+class Grid
+{
+    constructor(playerId, playerName)
+    {
         this.playerId = playerId;
         this.playerName = playerName;
         
@@ -16,31 +18,37 @@ class Grid {
         console.log(`Grid creado para ${playerName} (${GRID_CONFIG.WIDTH}x${GRID_CONFIG.HEIGHT})`);
     }
 
-    getCell(x, y) {
+    getCell(x, y)
+    {
         if (!this.isValidPosition(x, y)) return JewelType.NONE;
         return this.cells[x][y];
     }
 
-    setCell(x, y, jewelType) {
+    setCell(x, y, jewelType)
+    {
         if (!this.isValidPosition(x, y)) return false;
         this.cells[x][y] = jewelType;
         return true;
     }
 
-    isValidPosition(x, y) {
+    isValidPosition(x, y)
+    {
         return x >= 0 && x < GRID_CONFIG.WIDTH && 
                y >= 0 && y < GRID_CONFIG.HEIGHT;
     }
 
-    isEmpty(x, y) {
+    isEmpty(x, y)
+    {
         return this.getCell(x, y) === JewelType.NONE;
     }
 
-    isColumnFull(x) {
+    isColumnFull(x)
+    {
         return !this.isEmpty(x, GRID_CONFIG.DEATH_ROW);
     }
 
-    getLowestEmptyRow(x) {
+    getLowestEmptyRow(x)
+    {
         for (let y = 0; y < GRID_CONFIG.HEIGHT; y++) {
             if (this.isEmpty(x, y)) {
                 return y;
@@ -49,16 +57,13 @@ class Grid {
         return -1;
     }
 
-    // Aplicar gravedad: hacer caer joyas que tienen espacio debajo
-    applyGravity() {
+    applyGravity()
+    {
         let somethingFell = false;
 
-        // Procesar de abajo hacia arriba para cada columna
         for (let x = 0; x < GRID_CONFIG.WIDTH; x++) {
             for (let y = 1; y < GRID_CONFIG.HEIGHT; y++) {
-                // Si hay una joya y el espacio debajo está vacío
                 if (!this.isEmpty(x, y) && this.isEmpty(x, y - 1)) {
-                    // Mover la joya hacia abajo
                     this.cells[x][y - 1] = this.cells[x][y];
                     this.cells[x][y] = JewelType.NONE;
                     somethingFell = true;
@@ -69,12 +74,14 @@ class Grid {
         return somethingFell;
     }
 
-    // Aplicar gravedad hasta que nada caiga más
-    applyGravityUntilStable() {
+    applyGravityUntilStable()
+    {
         let iterations = 0;
-        while (this.applyGravity()) {
+        while (this.applyGravity())
+        {
             iterations++;
-            if (iterations > 20) {
+            if (iterations > 20)
+            {
                 console.error('Gravedad no estabiliza - loop infinito detectado');
                 break;
             }
@@ -82,39 +89,37 @@ class Grid {
         return iterations;
     }
 
-    // Colocar una pieza en una columna (las 3 joyas)
-    // devuelve true si se coloca
-    placePieceInColumn(column, jewels) {
-        // jewels = [bottom, middle, top] (3 joyas)
-        
-        // Encontrar donde colocar
+    placePieceInColumn(column, jewels)
+    {
         let startY = this.getLowestEmptyRow(column);
         
-        if (startY === -1 || startY + 2 >= GRID_CONFIG.HEIGHT) {
-            return false; // No hay espacio
+        if (startY === -1 || startY + 2 >= GRID_CONFIG.HEIGHT)
+        {
+            return false; 
         }
 
-        // Colocar las 3 joyas
-        this.setCell(column, startY, jewels[0]);     // Abajo
-        this.setCell(column, startY + 1, jewels[1]); // Medio
-        this.setCell(column, startY + 2, jewels[2]); // Arriba
-
+        this.setCell(column, startY, jewels[0]);     
+        this.setCell(column, startY + 1, jewels[1]);
+        this.setCell(column, startY + 2, jewels[2]);
         return true;
     }
 
-    // Remover joyas en las posiciones especificadas
-    removeJewels(positions) {
-        for (const pos of positions) {
+    removeJewels(positions)
+    {
+        for (const pos of positions)
+        {
             this.setCell(pos.x, pos.y, JewelType.NONE);
         }
     }
 
-    // todas las celdas con joyas
-    getAllNodes() {
+    getAllNodes()
+    {
         const nodes = [];
         
-        for (let x = 0; x < GRID_CONFIG.WIDTH; x++) {
-            for (let y = 0; y < GRID_CONFIG.HEIGHT; y++) {
+        for (let x = 0; x < GRID_CONFIG.WIDTH; x++)
+        {
+            for (let y = 0; y < GRID_CONFIG.HEIGHT; y++)
+            {
                 nodes.push({
                     type: this.cells[x][y],
                     x: x,
@@ -126,16 +131,19 @@ class Grid {
         return nodes;
     }
 
-    // Obtener solo las celdas que cambiaron
-    getChangedNodes(previousGrid) {
+    getChangedNodes(previousGrid)
+    {
         const changed = [];
         
-        for (let x = 0; x < GRID_CONFIG.WIDTH; x++) {
-            for (let y = 0; y < GRID_CONFIG.HEIGHT; y++) {
+        for (let x = 0; x < GRID_CONFIG.WIDTH; x++)
+        {
+            for (let y = 0; y < GRID_CONFIG.HEIGHT; y++)
+            {
                 const current = this.cells[x][y];
                 const previous = previousGrid ? previousGrid.cells[x][y] : JewelType.NONE;
                 
-                if (current !== previous) {
+                if (current !== previous)
+                {
                     changed.push({
                         type: current,
                         x: x,
@@ -148,8 +156,8 @@ class Grid {
         return changed;
     }
 
-    // Clonar el grid
-    clone() {
+    clone()
+    {
         const cloned = new Grid(this.playerId, this.playerName);
         
         for (let x = 0; x < GRID_CONFIG.WIDTH; x++) {
@@ -161,8 +169,8 @@ class Grid {
         return cloned;
     }
 
-    // Limpiar todo el grid
-    clear() {
+    clear()
+    {
         for (let x = 0; x < GRID_CONFIG.WIDTH; x++) {
             for (let y = 0; y < GRID_CONFIG.HEIGHT; y++) {
                 this.cells[x][y] = JewelType.NONE;
@@ -170,9 +178,8 @@ class Grid {
         }
     }
 
-    // Debug
-    print() {
-        console.log(`\n=== Grid de ${this.playerName} ===`);
+    print()
+    {
         
         for (let y = GRID_CONFIG.HEIGHT - 1; y >= 0; y--) {
             let row = `${y.toString().padStart(2, '0')} |`;

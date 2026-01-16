@@ -35,7 +35,6 @@ public class GameClient : MonoBehaviour
 
     void Awake()
     {
-        // ARREGLO 1: Inicializar el Singleton
         if (instance == null)
         {
             instance = this;
@@ -53,7 +52,6 @@ public class GameClient : MonoBehaviour
         ConnectToServer();
     }
 
-    // ARREGLO 2: M�todo corregido para unirse a sala
     public void JoinRoomByName(string roomName)
     {
         if (!isConnected || socket == null)
@@ -65,7 +63,7 @@ public class GameClient : MonoBehaviour
         currentRoomName = roomName;
         playersData.Clear();
 
-        Debug.Log($"Uni�ndose a sala '{roomName}' como espectador...");
+        Debug.Log($"Uniendose a sala '{roomName}' como espectador...");
         socket.Emit("joinRoomAsViewer", roomName);
     }
     public void ExitRoom(string name)
@@ -110,7 +108,6 @@ public class GameClient : MonoBehaviour
         Debug.Log("Conectado al servidor correctamente");
 
         string unityUsername = $"UnityViewer_{UnityEngine.Random.Range(1000, 9999)}";
-        Debug.Log($"Autenticando como: {unityUsername}");
 
         socket.Emit("authenticate", new
         {
@@ -137,7 +134,6 @@ public class GameClient : MonoBehaviour
         try
         {
             string json = response.ToString();
-            Debug.Log($"Game Init recibido: {json}");
 
             JObject initData = JObject.Parse(json);
 
@@ -147,8 +143,6 @@ public class GameClient : MonoBehaviour
 
             int gridWidth = (int)gridConfig["width"];
             int gridHeight = (int)gridConfig["height"];
-
-            Debug.Log($"Inicializando juego - Sala: {roomId}, Grid: {gridWidth}x{gridHeight}, Jugadores: {players.Count}");
 
             playersData.Clear();
 
@@ -188,11 +182,10 @@ public class GameClient : MonoBehaviour
                     playersData[firstPlayerId].gridInitialized = true;
                 }
 
-                Debug.Log($"Grid inicializado para {firstPlayerName}");
             }
             else if (nodeGrid == null)
             {
-                Debug.LogError("NodeGrid no est� asignado en el Inspector!");
+                Debug.LogError("NodeGrid no esta asignado");
             }
         }
         catch (Exception ex)
@@ -215,7 +208,6 @@ public class GameClient : MonoBehaviour
 
             if (playersArray == null)
             {
-                Debug.LogError("gameState no contiene array 'players'");
                 return;
             }
 
@@ -300,7 +292,7 @@ public class GameClient : MonoBehaviour
 
     void OnGameStarted(SocketIOResponse response)
     {
-        Debug.Log("�Juego iniciado! " + response.ToString());
+        Debug.Log("Juego iniciado " + response.ToString());
     }
 
     void OnGamePaused(SocketIOResponse response)
@@ -310,13 +302,11 @@ public class GameClient : MonoBehaviour
 
     void OnGameResumed(SocketIOResponse response)
     {
-        Debug.Log(" Juego reanudado");
+        Debug.Log("Juego reanudado");
     }
 
     void OnGameOver(SocketIOResponse response)
     {
-        Debug.Log("Game Over: " + response.ToString());
-
         try
         {
             JObject gameOverData = JObject.Parse(response.ToString());
@@ -344,14 +334,12 @@ public class GameClient : MonoBehaviour
     void OnRoomJoined(SocketIOResponse response)
     {
         Debug.Log("Unido a sala: " + response.ToString());
-        Debug.Log("Esperando gameInit del servidor...");
     }
 
     public void GetRoomsList()
     {
         if (!isConnected || socket == null)
         {
-            Debug.LogWarning("No se puede obtener lista de salas: Socket no conectado");
             return;
         }
 
@@ -363,7 +351,6 @@ public class GameClient : MonoBehaviour
     {
         if (!isConnected || socket == null)
         {
-            Debug.LogWarning("No se puede salir de sala: Socket no conectado");
             return;
         }
 
@@ -376,33 +363,6 @@ public class GameClient : MonoBehaviour
         }
     }
 
-    void OnDestroy()
-    {
-        if (socket != null)
-        {
-            Debug.Log("Desconectando socket...");
-            socket.Disconnect();
-            socket = null;
-        }
-        isConnected = false;
-    }
 
-    void OnApplicationQuit()
-    {
-        OnDestroy();
-    }
-
-    [ContextMenu("Test Connection")]
-    void TestConnection()
-    {
-        Debug.Log($"Socket: {(socket != null ? "Creado" : "NULL")}");
-        Debug.Log($"Conectado: {isConnected}");
-        Debug.Log($"Server URL: {serverUrl}");
-    }
-
-    [ContextMenu("Force Get Rooms")]
-    void ForceGetRooms()
-    {
-        GetRoomsList();
-    }
+   
 }
