@@ -135,6 +135,7 @@ io.on("connection", (socket) => {
         socket.emit("roomJoined", result);
     });
 
+    // CORREGIDO: joinRoomAsViewer
     socket.on("joinRoomAsViewer", (data) => {
         if (!roomManager) {
             socket.emit("error", { message: "Server not ready" });
@@ -142,9 +143,11 @@ io.on("connection", (socket) => {
         }
 
         const { roomId } = data;
-        console.log("Unirse como espectador a sala:", roomId);
+        console.log(`🎥 ${socket.id} uniéndose como espectador a sala ${roomId}`);
+        
         const result = roomManager.joinRoomAsViewer(socket.id, roomId);
         
+        console.log("Resultado de joinRoomAsViewer:", result);
         socket.emit("roomJoined", result);
     });
 
@@ -160,12 +163,15 @@ io.on("connection", (socket) => {
 
     socket.on("getRooms", () => {
         if (!roomManager) {
+            console.log("⚠️ getRooms llamado pero roomManager no disponible");
             socket.emit("roomsList", []);
             return;
         }
 
-        console.log("Obteniendo lista de salas");
-        socket.emit("roomsList", roomManager.getRoomsList());
+        console.log("📋 Obteniendo lista de salas para socket:", socket.id);
+        const rooms = roomManager.getRoomsList();
+        console.log("📤 Enviando", rooms.length, "salas");
+        socket.emit("roomsList", rooms);
     });
 
     socket.on("setReady", (data) => {

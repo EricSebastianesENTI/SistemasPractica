@@ -100,7 +100,7 @@ class RoomManager {
                             isReady: false
                         }
                     ],
-                    viewers: [],
+                    viewers: [], // Array, no Set
                     status: 'waiting',
                     gameController: null
                 };
@@ -223,23 +223,33 @@ class RoomManager {
         }
     }
 
-    // AÑADIR ESTE MÉTODO AL roomManager.js existente
-// (o modificar el método joinRoomAsViewer existente)
+    // MÉTODO CORREGIDO: joinRoomAsViewer
+    joinRoomAsViewer(socketId, roomId) {
+        const user = this.getUser(socketId);
+        
+        if (!user) {
+            return { status: 'error', message: 'User not authenticated' };
+        }
 
-joinRoomAsViewer(socketId, roomId) {
-    const user = this.users.get(socketId);
-    if (!user) {
-        return { status: 'error', message: 'User not authenticated' };
-    }
+        const room = this.activeRooms.get(roomId);
+        
+        if (!room) {
+            return { status: 'error', message: 'Room not found' };
+        }
 
-    const room = this.rooms.get(roomId);
-    if (!room) {
-        return { status: 'error', message: 'Room not found' };
-    }
+        // Verificar si ya es viewer
+        const alreadyViewer = room.viewers.find(v => v.socketId === socketId);
+        if (alreadyViewer) {
+            return { status: 'error', message: 'Already viewing this room' };
+        }
 
-    // Añadir como viewer
-    if (!room.viewers.has(socketId)) {
-        room.viewers.add(socketId);
+        // Añadir como viewer
+        room.viewers.push({
+            socketId: socketId,
+            userId: user.userId,
+            username: user.username
+        });
+        
         user.currentRoom = roomId;
         user.isViewer = true;
 
@@ -257,14 +267,14 @@ joinRoomAsViewer(socketId, roomId) {
             room.gameController.sendGameInitToViewer(socketId);
             
             // Actualizar estado de pausa si es necesario
-            const hasViewers = room.viewers.size > 0;
+            const hasViewers = room.viewers.length > 0;
             room.gameController.togglePause(hasViewers);
         }
 
         // Notificar a otros en la sala
         this.io.to(`room_${roomId}`).emit('viewerJoined', {
             username: user.username,
-            viewersCount: room.viewers.size
+            viewersCount: room.viewers.length
         });
 
         // Actualizar lista de salas para todos
@@ -272,12 +282,9 @@ joinRoomAsViewer(socketId, roomId) {
 
         return {
             status: 'success',
-            roomData: this.getRoomData(room)
+            roomData: this.serializeRoomData(room)
         };
     }
-
-    return { status: 'error', message: 'Already in room' };
-}
 
     leaveRoom(socketId, roomId) {
         const user = this.getUser(socketId);
@@ -334,6 +341,7 @@ joinRoomAsViewer(socketId, roomId) {
         this.broadcastRoomsList();
     }
 
+    // MÉTODO CORREGIDO: getRoomsList
     getRoomsList() {
         const rooms = [];
 
@@ -351,11 +359,13 @@ joinRoomAsViewer(socketId, roomId) {
             });
         });
 
+        console.log('📋 getRoomsList devolviendo:', JSON.stringify(rooms, null, 2));
         return rooms;
     }
 
     broadcastRoomsList() {
         const rooms = this.getRoomsList();
+        console.log('📡 Broadcasting rooms list:', rooms.length, 'salas');
         this.io.emit('roomsList', rooms);
     }
 
