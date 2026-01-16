@@ -13,5 +13,6 @@ public class RoomButton : MonoBehaviour, IPointerClickHandler
         Debug.Log($"Intentando unirse a sala: {roomName}");
         GameClient.Instance.JoinRoomByName(roomName);
         GameClient.Instance.currentRoomName = roomName;
+        SceneController.Instance.ShowReturn();
     }
 }
