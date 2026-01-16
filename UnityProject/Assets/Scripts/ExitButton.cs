@@ -9,6 +9,14 @@ public class ExitButton : MonoBehaviour, IPointerClickHandler
     void Start()
     {
         sceneController = GameObject.Find("SceneController").GetComponent<SceneController>();
+        if (sceneController != null)
+        {
+            Debug.Log("SceneController found");
+        }
+        else
+        {
+            Debug.LogError("SceneController not found!");
+        }
     }
     public void OnPointerClick(PointerEventData eventData)
     {
