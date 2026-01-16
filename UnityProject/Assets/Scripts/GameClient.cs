@@ -53,7 +53,7 @@ public class GameClient : MonoBehaviour
         ConnectToServer();
     }
 
-    // ARREGLO 2: Método corregido para unirse a sala
+    // ARREGLO 2: Mï¿½todo corregido para unirse a sala
     public void JoinRoomByName(string roomName)
     {
         if (!isConnected || socket == null)
@@ -65,10 +65,13 @@ public class GameClient : MonoBehaviour
         currentRoomName = roomName;
         playersData.Clear();
 
-        Debug.Log($"Uniéndose a sala '{roomName}' como espectador...");
+        Debug.Log($"Uniï¿½ndose a sala '{roomName}' como espectador...");
         socket.Emit("joinRoomAsViewer", roomName);
     }
-
+    public void ExitRoom(string name)
+    {
+        socket.Emit("leaveRoomAsViewer", name);
+    }
     void ConnectToServer()
     {
         try
@@ -118,7 +121,7 @@ public class GameClient : MonoBehaviour
     void OnDisconnected(object sender, string reason)
     {
         isConnected = false;
-        Debug.LogWarning($"Desconectado del servidor. Razón: {reason}");
+        Debug.LogWarning($"Desconectado del servidor. Razï¿½n: {reason}");
         playersData.Clear();
     }
 
@@ -188,7 +191,7 @@ public class GameClient : MonoBehaviour
             }
             else if (nodeGrid == null)
             {
-                Debug.LogError("NodeGrid no está asignado en el Inspector!");
+                Debug.LogError("NodeGrid no estï¿½ asignado en el Inspector!");
             }
         }
         catch (Exception ex)
@@ -296,7 +299,7 @@ public class GameClient : MonoBehaviour
 
     void OnGameStarted(SocketIOResponse response)
     {
-        Debug.Log("¡Juego iniciado! " + response.ToString());
+        Debug.Log("ï¿½Juego iniciado! " + response.ToString());
     }
 
     void OnGamePaused(SocketIOResponse response)

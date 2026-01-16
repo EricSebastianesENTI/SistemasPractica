@@ -72,6 +72,8 @@ setTimeout(() => {
 
 app.use(require("./routes/_routes"));
 
+
+game = [];
 io.on("connection", (socket) => {
     var address = socket.request.connection;
     console.log("Socket connected --> " + address.remoteAddress + ":" + address.remotePort);
@@ -113,7 +115,7 @@ io.on("connection", (socket) => {
             socket.emit("error", { message: "Server not ready" });
             return;
         }
-
+        
         const { roomName } = data;
         console.log("Creando sala:", roomName);
         const result = await roomManager.createRoom(socket.id, roomName);
@@ -122,52 +124,31 @@ io.on("connection", (socket) => {
     });
 
     socket.on("joinRoomAsPlayer", async (data) => {
-        if (!roomManager) {
-            socket.emit("error", { message: "Server not ready" });
-            return;
-        }
 
         const { roomId } = data;
         console.log("Unirse como jugador a sala:", roomId);
         const result = await roomManager.joinRoomAsPlayer(socket.id, roomId);
 
         socket.emit("roomJoined", result);
+        if (game.length == 0)
+        {
+
+        }
     });
 
-    // ARREGLO CRÍTICO: Evento joinRoomAsViewer corregido
-    socket.on("joinRoomAsViewer", (roomName) => {
-        if (!roomManager) {
-            socket.emit("error", { message: "Server not ready" });
-            return;
-        }
+    socket.on("joinRoomAsViewer", (name) => {
+        socket.join(name);
+        socket.emit("roomJoined", true);
+        game.push(data);
+    });
+    socket.on("leaveRoomAsViewer", (name) => {
+        socket.leave(name);
+        socket.emit("roomLeft", true);
+        
+        let index = game.indexOf(name);
 
-        console.log(`🔍 Unity intenta unirse como viewer a sala: "${roomName}"`);
-
-        // Buscar la sala por nombre
-        const rooms = roomManager.getRoomsList();
-        const targetRoom = rooms.find(r => r.name === roomName);
-
-        if (!targetRoom) {
-            console.log(`❌ Sala "${roomName}" no encontrada`);
-            socket.emit("error", { message: `Room "${roomName}" not found` });
-            return;
-        }
-
-        console.log(`✅ Sala encontrada: ID ${targetRoom.id}, estado: ${targetRoom.status}`);
-
-        // Usar el método del RoomManager con el roomId
-        const result = roomManager.joinRoomAsViewer(socket.id, targetRoom.id);
-
-        if (result.status === 'success') {
-            console.log(`✅ Viewer unido a sala ${targetRoom.id}`);
-            socket.emit("roomJoined", {
-                status: "success",
-                roomId: targetRoom.id,
-                roomName: roomName
-            });
-        } else {
-            console.log(`❌ Error al unir viewer:`, result);
-            socket.emit("error", result);
+        if (index !== -1) {
+            game.splice(index, 1);
         }
     });
 
