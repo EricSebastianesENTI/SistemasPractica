@@ -162,16 +162,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("getRooms", () => {
-        if (!roomManager) {
-            console.log("⚠️ getRooms llamado pero roomManager no disponible");
-            socket.emit("roomsList", []);
-            return;
-        }
-
-        console.log("📋 Obteniendo lista de salas para socket:", socket.id);
-        const rooms = roomManager.getRoomsList();
-        console.log("📤 Enviando", rooms.length, "salas");
-        socket.emit("roomsList", rooms);
+        console.log("📤 Enviando", Array.from(io.of("/").adapter.rooms.keys(), "salas");
+        socket.emit("roomsList", Array.from(io.of("/").adapter.rooms.keys());
     });
 
     socket.on("setReady", (data) => {
