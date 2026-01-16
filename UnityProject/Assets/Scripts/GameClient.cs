@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class GameClient : MonoBehaviour
 {
-    public static GameClient Instance=>instance;
+    public static GameClient Instance => instance;
     private static GameClient instance;
     public string currentRoomName = "";
 
@@ -33,14 +33,42 @@ public class GameClient : MonoBehaviour
         public bool gridInitialized;
     }
 
+    void Awake()
+    {
+        // ARREGLO 1: Inicializar el Singleton
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+    }
+
     void Start()
     {
         ConnectToServer();
     }
-    public void JoinRoom(string name)
+
+    // ARREGLO 2: Método corregido para unirse a sala
+    public void JoinRoomByName(string roomName)
     {
-        socket.Emit("joinRoomAsViewer", name);
+        if (!isConnected || socket == null)
+        {
+            Debug.LogError("No se puede unir a sala: Socket no conectado");
+            return;
+        }
+
+        currentRoomName = roomName;
+        playersData.Clear();
+
+        Debug.Log($"Uniéndose a sala '{roomName}' como espectador...");
+        socket.Emit("joinRoomAsViewer", roomName);
     }
+
     void ConnectToServer()
     {
         try
@@ -120,7 +148,6 @@ public class GameClient : MonoBehaviour
 
             playersData.Clear();
 
-            // Registrar TODOS los jugadores
             foreach (JObject playerObj in players)
             {
                 int playerId = (int)playerObj["userId"];
@@ -137,7 +164,6 @@ public class GameClient : MonoBehaviour
                 Debug.Log($"Jugador registrado: {username} (ID: {playerId})");
             }
 
-            // Inicializar grid SOLO para el primer jugador (o ambos si quieres split-screen)
             if (nodeGrid != null && players.Count > 0)
             {
                 int firstPlayerId = (int)((JObject)players[0])["userId"];
@@ -181,7 +207,6 @@ public class GameClient : MonoBehaviour
             string state = (string)gameStateObj["state"];
             bool isPaused = (bool)gameStateObj["isPaused"];
 
-            // CORREGIDO: El servidor ahora envía "players" array, no "grids" y "currentPieces"
             JArray playersArray = (JArray)gameStateObj["players"];
 
             if (playersArray == null)
@@ -198,7 +223,6 @@ public class GameClient : MonoBehaviour
                 JArray gridNodes = (JArray)playerObj["grid"];
                 JArray currentPiece = (JArray)playerObj["currentPiece"];
 
-                // Actualizar datos locales
                 if (!playersData.ContainsKey(playerId))
                 {
                     playersData[playerId] = new PlayerGameData
@@ -214,13 +238,11 @@ public class GameClient : MonoBehaviour
                     playersData[playerId].score = score;
                 }
 
-                // Actualizar UI de score
                 if (scoreUI != null)
                 {
                     scoreUI.UpdateScore(playerId, username, score);
                 }
 
-                // Actualizar visual del grid
                 if (playersData[playerId].gridInitialized && nodeGrid != null)
                 {
                     UpdateGridVisual(playerId, gridNodes, currentPiece);
@@ -243,7 +265,6 @@ public class GameClient : MonoBehaviour
 
         List<NodeGrid.Node> nodes = new List<NodeGrid.Node>();
 
-        // Añadir nodos del grid
         foreach (JObject nodeObj in gridNodes)
         {
             NodeGrid.Node node = new NodeGrid.Node(
@@ -254,7 +275,6 @@ public class GameClient : MonoBehaviour
             nodes.Add(node);
         }
 
-        // Añadir nodos de la pieza actual
         foreach (JObject pieceNodeObj in currentPiece)
         {
             NodeGrid.Node pieceNode = new NodeGrid.Node(
@@ -315,29 +335,11 @@ public class GameClient : MonoBehaviour
             Debug.Log($"Sala recibida: {val}");
         }
         roomListManager.OnRoomsListReceived(values);
-        // roomList.UpdateRoomList(values.ToList());
     }
 
     void OnRoomJoined(SocketIOResponse response)
     {
         Debug.Log("Unido a sala: " + response.ToString());
-    }
-
-    // MÉTODOS PÚBLICOS
-
-    public void JoinRoomAsViewer(int roomId)
-    {
-        if (!isConnected || socket == null)
-        {
-            Debug.LogError("No se puede unir a sala: Socket no conectado");
-            return;
-        }
-
-        currentRoomId = roomId;
-        playersData.Clear();
-
-        Debug.Log($"Uniéndose a sala {roomId} como espectador...");
-        socket.Emit("joinRoomAsViewer", new { roomId = roomId });
     }
 
     public void GetRoomsList()
@@ -360,11 +362,11 @@ public class GameClient : MonoBehaviour
             return;
         }
 
-        if (currentRoomId > 0)
+        if (!string.IsNullOrEmpty(currentRoomName))
         {
-            Debug.Log($"Saliendo de sala {currentRoomId}...");
-            socket.Emit("leaveRoom", new { roomId = currentRoomId });
-            currentRoomId = 0;
+            Debug.Log($"Saliendo de sala {currentRoomName}...");
+            socket.Emit("leaveRoom", currentRoomName);
+            currentRoomName = "";
             playersData.Clear();
         }
     }

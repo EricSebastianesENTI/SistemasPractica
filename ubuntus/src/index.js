@@ -11,7 +11,7 @@ const morgan = require("morgan");
 app.use(morgan("dev"));
 
 // Express url work setup
-app.use(express.urlencoded({extended: false}));
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 const path = require("path");
@@ -78,15 +78,15 @@ io.on("connection", (socket) => {
 
     if (!roomManager) {
         console.log("Cliente conectado pero RoomManager no está listo");
-        socket.emit("error", { 
+        socket.emit("error", {
             message: "Server is initializing, please wait and try again...",
             code: "SERVER_NOT_READY"
         });
     }
-    
+
     socket.on("authenticate", async (data) => {
         console.log("Intento de autenticación:", data);
-        
+
         if (!roomManager) {
             console.log("Autenticación fallida - RoomManager no disponible");
             socket.emit("error", { message: "Server not ready" });
@@ -94,16 +94,16 @@ io.on("connection", (socket) => {
         }
 
         const { userId, username } = data;
-        
+
         roomManager.registerUser(socket.id, userId, username);
-        
+
         // Enviar lista de salas actual
         socket.emit("roomsList", roomManager.getRoomsList());
-        
+
         console.log("Usuario autenticado:", username);
-        socket.emit("authenticated", { 
+        socket.emit("authenticated", {
             status: "success",
-            message: "Authenticated successfully" 
+            message: "Authenticated successfully"
         });
     });
 
@@ -117,7 +117,7 @@ io.on("connection", (socket) => {
         const { roomName } = data;
         console.log("Creando sala:", roomName);
         const result = await roomManager.createRoom(socket.id, roomName);
-        
+
         socket.emit("roomCreated", result);
     });
 
@@ -130,7 +130,7 @@ io.on("connection", (socket) => {
         const { roomId } = data;
         console.log("Unirse como jugador a sala:", roomId);
         const result = await roomManager.joinRoomAsPlayer(socket.id, roomId);
-        
+
         socket.emit("roomJoined", result);
     });
 
@@ -145,13 +145,13 @@ io.on("connection", (socket) => {
         const { roomId } = data;
         console.log("Salir de sala:", roomId);
         roomManager.leaveRoom(socket.id, roomId);
-        
+
         socket.emit("roomLeft", { status: "success" });
     });
 
     socket.on("getRooms", () => {
-        console.log("📤 Enviando"+ Array.from(io.of("/").adapter.rooms.keys()+ "salas"));
-        socket.emit("roomsList"+ Array.from(io.of("/").adapter.rooms.keys()));
+        console.log("Enviando" + Array.from(io.of("/").adapter.rooms.keys() + "salas"));
+        socket.emit("roomsList", Array.from(io.of("/").adapter.rooms.keys()));
     });
 
     socket.on("setReady", (data) => {
@@ -160,7 +160,7 @@ io.on("connection", (socket) => {
         const { isReady } = data;
         console.log("Cambio de estado ready:", isReady);
         const result = roomManager.setPlayerReady(socket.id, isReady);
-        
+
         socket.emit("readyStatus", result);
     });
 
@@ -169,7 +169,7 @@ io.on("connection", (socket) => {
 
         const { command } = data;
         const result = roomManager.handleGameCommand(socket.id, command);
-        
+
         if (result.status === 'error') {
             socket.emit("error", result);
         }
@@ -182,20 +182,20 @@ io.on("connection", (socket) => {
         if (!user || !user.currentRoom) return;
 
         const { message } = data;
-        
+
         io.to(`room_${user.currentRoom}`).emit("chatMessage", {
             userId: user.userId,
             username: user.username,
             message: message,
             timestamp: Date.now()
         });
-        
+
         console.log(`[${user.username}]: ${message}`);
     });
-    
+
     socket.on("disconnect", () => {
         console.log("Socket disconnected: " + address.remoteAddress + ":" + address.remotePort);
-        
+
         if (roomManager) {
             roomManager.disconnectUser(socket.id);
         }
